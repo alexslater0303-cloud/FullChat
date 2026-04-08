@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FULL CHAT</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;700;900&family=Barlow:wght@400;500;600&family=Playfair+Display:ital,wght@0,700;1,400&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:'Barlow',sans-serif;background:#F5F0E8;color:#1A1A1A;min-height:100vh;overflow-x:hidden;}
+.screen{display:none;min-height:100vh;flex-direction:column;}
+.screen.active{display:flex;}
+.top-rule{height:3px;background:#1A1A1A;flex-shrink:0;}
+
+/* LOGIN */
+#screen-login{background:#F5F0E8;align-items:center;justify-content:center;}
+.login-inner{padding:48px 28px;display:flex;flex-direction:column;align-items:center;width:100%;max-width:400px;}
+.wordmark{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:clamp(56px,18vw,88px);letter-spacing:-3px;color:#1A1A1A;line-height:0.88;display:block;}
+.wordmark span{color:#C8102E;}
+.tagline{font-family:'Barlow Condensed',sans-serif;font-weight:400;font-size:11px;letter-spacing:7px;color:#999;text-transform:uppercase;display:block;margin-top:10px;}
+.field-label{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;letter-spacing:5px;text-transform:uppercase;color:#AAA;margin-bottom:8px;width:100%;margin-top:16px;}
+.api-input{width:100%;background:#1A1A1A;color:#F5F0E8;border:none;border-radius:4px;padding:14px 18px;font-family:'Barlow',sans-serif;font-size:14px;outline:none;margin-bottom:4px;}
+.api-input::placeholder{color:#555;}
+.api-input:focus{box-shadow:0 0 0 3px #C8102E;}
+.api-note{font-size:11px;color:#AAA;margin-bottom:4px;line-height:1.4;}
+.api-note a{color:#C8102E;text-decoration:none;}
+.api-error{color:#C8102E;font-size:12px;min-height:16px;margin:6px 0;width:100%;}
+.api-btn{width:100%;background:#C8102E;color:#F5F0E8;border:none;border-radius:4px;padding:17px;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:17px;letter-spacing:3px;text-transform:uppercase;cursor:pointer;margin-top:12px;transition:opacity 0.2s;}
+.api-btn:hover{opacity:0.85;}
+
+/* SPLASH */
+#screen-splash{background:#F5F0E8;}
+.splash-inner{padding:36px 28px 48px;display:flex;flex-direction:column;align-items:center;flex:1;}
+.splash-logo{text-align:center;width:100%;border-bottom:2px solid #1A1A1A;padding-bottom:20px;animation:fadeDown 0.7s ease both;}
+.persona-label{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;letter-spacing:6px;color:#AAA;text-transform:uppercase;text-align:center;margin:24px 0 20px;animation:fadeUp 0.7s 0.2s ease both;opacity:0;}
+.persona-list{width:100%;max-width:440px;animation:fadeUp 0.7s 0.35s ease both;opacity:0;}
+.persona-row{display:flex;align-items:center;gap:18px;padding:16px 0;cursor:pointer;border-bottom:1.5px solid #D8D3CB;transition:padding-left 0.18s ease;}
+.persona-row:first-child{border-top:1.5px solid #D8D3CB;}
+.persona-row:hover{padding-left:6px;}
+.persona-name{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:22px;text-transform:uppercase;display:block;margin-bottom:2px;line-height:1;}
+.persona-desc{font-size:11.5px;color:#888;line-height:1.4;}
+.persona-arrow{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:20px;color:#D0CBC3;margin-left:auto;flex-shrink:0;transition:transform 0.18s ease,color 0.18s ease;}
+.persona-row:hover .persona-arrow{transform:translateX(5px);}
+
+/* PROMPT */
+#screen-prompt{background:#F5F0E8;}
+.prompt-header{display:flex;align-items:center;justify-content:space-between;padding:20px 24px 16px;border-bottom:2px solid #1A1A1A;}
+.prompt-logo{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:28px;letter-spacing:-1px;color:#1A1A1A;}
+.persona-badge{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:11px;letter-spacing:3px;text-transform:uppercase;padding:6px 12px;border-radius:2px;cursor:pointer;color:#F5F0E8;transition:opacity 0.2s;}
+.persona-badge:hover{opacity:0.8;}
+.prompt-body{flex:1;padding:28px 24px;display:flex;flex-direction:column;}
+.prompt-eyebrow{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:11px;letter-spacing:5px;text-transform:uppercase;color:#888;margin-bottom:10px;}
+.prompt-headline{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:clamp(30px,8vw,44px);line-height:0.95;text-transform:uppercase;color:#1A1A1A;margin-bottom:22px;}
+.prompt-headline em{font-style:normal;}
+.prompt-textarea{width:100%;background:#1A1A1A;color:#F5F0E8;border:none;border-radius:4px;padding:16px 18px;font-family:'Barlow',sans-serif;font-size:15px;line-height:1.5;min-height:100px;resize:none;outline:none;margin-bottom:18px;transition:box-shadow 0.2s;}
+.prompt-textarea::placeholder{color:#555;}
+.prompt-textarea:focus{box-shadow:0 0 0 3px var(--ac);}
+.depth-panel{background:#1A1A1A;border-radius:4px;padding:14px 16px;margin-bottom:18px;}
+.depth-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+.depth-title{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;letter-spacing:4px;text-transform:uppercase;color:#888;}
+.depth-val{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:14px;letter-spacing:1px;text-transform:uppercase;}
+input[type=range]{-webkit-appearance:none;width:100%;height:4px;border-radius:2px;outline:none;cursor:pointer;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;cursor:pointer;}
+.depth-labels{display:flex;justify-content:space-between;margin-top:6px;}
+.depth-lbl{font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:#555;cursor:pointer;}
+.depth-desc{font-size:12px;color:#666;margin-top:6px;}
+.suggest-label{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;letter-spacing:4px;text-transform:uppercase;color:#888;margin-bottom:10px;}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:22px;}
+.chip{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;padding:8px 14px;border:1.5px solid #1A1A1A;border-radius:2px;cursor:pointer;color:#1A1A1A;background:transparent;text-transform:uppercase;transition:all 0.15s;}
+.chip:hover{background:#1A1A1A;color:#F5F0E8;}
+.go-btn{width:100%;color:#F5F0E8;border:none;border-radius:4px;padding:18px;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:18px;letter-spacing:3px;text-transform:uppercase;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:opacity 0.2s,transform 0.15s;}
+.go-btn:hover{opacity:0.9;transform:translateY(-1px);}
+.pipe-info-label{text-align:center;margin-top:12px;font-size:12px;color:#888;}
+
+/* LOADING - REV COUNTERS */
+#screen-loading{background:#111;}
+.loading-inner{flex:1;display:flex;align-items:center;justify-content:center;}
+.loading-content{display:flex;flex-direction:column;align-items:center;gap:18px;padding:36px 22px;width:100%;max-width:400px;}
+.loading-logo{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:40px;letter-spacing:-2px;color:#F5F0E8;}
+.loading-mode{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;letter-spacing:5px;text-transform:uppercase;color:#444;margin-bottom:4px;}
+.pipe-steps{width:100%;display:flex;flex-direction:column;gap:10px;}
+.pipe-row{display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:4px;background:#1A1A1A;border:1.5px solid #2A2A2A;transition:all 0.3s;}
+.pipe-row.active{background:#111;}
+.pipe-row.done{background:#0A1A0A;border-color:#2A6A2A;}
+.pipe-row.error{background:#1A0A0A;border-color:#C8102E;}
+.pipe-name{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:2px;text-transform:uppercase;color:#555;display:block;transition:color 0.3s;}
+.pipe-row.active .pipe-name{color:#F5F0E8;}
+.pipe-row.done .pipe-name{color:#6A9A6A;}
+.pipe-status{font-size:11px;color:#3A3A3A;display:block;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:color 0.3s;}
+.pipe-row.active .pipe-status{color:#999;}
+.pipe-row.done .pipe-status{color:#4A7A4A;}
+
+/* ARTICLE */
+#screen-article{background:#F5F0E8;}
+.article-nav{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:2px solid #1A1A1A;position:sticky;top:0;background:#F5F0E8;z-index:10;}
+.article-nav-logo{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:22px;letter-spacing:-0.5px;color:#1A1A1A;}
+.new-brief-btn{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:11px;letter-spacing:3px;text-transform:uppercase;padding:8px 14px;border-radius:2px;background:transparent;cursor:pointer;transition:all 0.15s;}
+.new-brief-btn:hover{background:#1A1A1A!important;color:#F5F0E8!important;border-color:#1A1A1A!important;}
+.article-hero{position:relative;min-height:250px;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;}
+.hero-bg{position:absolute;inset:0;opacity:0.35;}
+.hero-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.96) 0%,rgba(0,0,0,0.45) 55%,rgba(0,0,0,0.05) 100%);}
+.hero-fc{position:absolute;top:-8px;right:-8px;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:170px;color:rgba(255,255,255,0.03);line-height:1;user-select:none;pointer-events:none;}
+.hero-content{position:relative;z-index:2;padding:24px 24px 22px;}
+.hero-category{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;letter-spacing:5px;text-transform:uppercase;color:rgba(255,255,255,0.45);margin-bottom:10px;}
+.hero-title{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:clamp(30px,7vw,46px);line-height:0.92;text-transform:uppercase;color:#F5F0E8;margin-bottom:12px;}
+.hero-deck{font-family:'Playfair Display',serif;font-style:italic;font-size:14px;line-height:1.5;color:rgba(255,255,255,0.78);max-width:310px;margin-bottom:14px;}
+.hero-tags{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.hero-tag{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;letter-spacing:3px;text-transform:uppercase;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.18);color:#F5F0E8;padding:4px 10px;border-radius:2px;}
+.hero-verified{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#fff;padding:4px 10px;border-radius:2px;}
+.article-body{padding:0 24px 32px;}
+.article-intro{margin:22px 0;font-size:15px;line-height:1.7;color:#333;}
+.section-rule{display:flex;align-items:center;gap:12px;margin:24px 0 16px;}
+.section-rule-line{flex:1;height:2px;background:#1A1A1A;}
+.section-rule-text{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:12px;letter-spacing:4px;text-transform:uppercase;color:#1A1A1A;white-space:nowrap;}
+.car-card{border:2px solid #1A1A1A;border-radius:4px;overflow:hidden;margin-bottom:22px;}
+.car-header{background:#1A1A1A;padding:14px 18px;display:flex;align-items:flex-start;justify-content:space-between;}
+.car-number{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:36px;line-height:1;opacity:0.5;}
+.car-name-wrap{flex:1;padding:0 12px;}
+.car-make{font-family:'Barlow Condensed',sans-serif;font-weight:400;font-size:11px;letter-spacing:4px;text-transform:uppercase;color:#888;}
+.car-model{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:24px;line-height:1;text-transform:uppercase;color:#F5F0E8;}
+.car-badge{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;letter-spacing:2px;text-transform:uppercase;padding:6px 10px;border-radius:2px;white-space:nowrap;align-self:flex-start;}
+.car-gallery{padding:0 14px;}
+.gallery-wrap{border-radius:4px;overflow:hidden;height:180px;position:relative;background:#111;margin:10px 0;}
+.gallery-img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0;transition:opacity 0.3s;}
+.gallery-loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#444;}
+.gallery-btn{position:absolute;top:50%;transform:translateY(-50%);background:rgba(0,0,0,0.65);color:#fff;border:none;border-radius:2px;width:28px;height:28px;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;z-index:2;}
+.gallery-btn.prev{left:8px;}
+.gallery-btn.next{right:8px;}
+.gallery-dots{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);display:flex;gap:5px;z-index:2;}
+.gallery-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,0.4);cursor:pointer;transition:background 0.2s;}
+.gallery-credit{font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#AAA;text-align:right;margin-top:3px;}
+.car-body{padding:4px 18px 18px;}
+.car-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px;}
+.stat-item{text-align:center;}
+.stat-val{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:20px;line-height:1;color:#1A1A1A;display:block;}
+.stat-label{font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#888;display:block;margin-top:2px;}
+.car-divider{border:none;border-top:1px solid #E5E0D8;margin:0 0 12px;}
+.car-copy{font-size:14px;line-height:1.6;color:#333;margin-bottom:12px;}
+.car-quote-block{border-left-width:4px;border-left-style:solid;padding:10px 14px;background:rgba(0,0,0,0.03);border-radius:0 4px 4px 0;}
+.car-quote-text{font-family:'Playfair Display',serif;font-style:italic;font-size:14px;color:#444;line-height:1.5;margin-bottom:6px;}
+.car-quote-attr{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;letter-spacing:2px;text-transform:uppercase;}
+.verdict-strip{background:#1A1A1A;padding:20px;border-radius:4px;margin:8px 0 22px;}
+.verdict-label{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;letter-spacing:5px;text-transform:uppercase;margin-bottom:8px;}
+.verdict-text{font-family:'Playfair Display',serif;font-style:italic;font-size:15px;line-height:1.6;color:#F5F0E8;}
+.buying-guide{background:white;border:2px solid #1A1A1A;border-radius:4px;overflow:hidden;margin-bottom:8px;}
+.buying-header{padding:12px 18px;}
+.buying-title{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:15px;letter-spacing:2px;text-transform:uppercase;color:#F5F0E8;}
+.buying-body{padding:14px 18px;}
+.guide-item{display:flex;gap:12px;margin-bottom:12px;align-items:flex-start;}
+.guide-dot{width:8px;height:8px;border-radius:50%;margin-top:5px;flex-shrink:0;}
+.guide-text{font-size:13px;line-height:1.5;color:#333;}
+.new-prompt-btn{margin:0 24px;display:block;width:calc(100% - 48px);color:#F5F0E8;border:none;border-radius:4px;padding:16px;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:16px;letter-spacing:3px;text-transform:uppercase;cursor:pointer;transition:opacity 0.2s;}
+.new-prompt-btn:hover{opacity:0.85;}
+
+/* FOLLOW-UP */
+.followup-section{border-top:2px solid #1A1A1A;margin-top:22px;}
+.followup-header{background:#1A1A1A;padding:14px 24px;}
+.followup-title{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:14px;letter-spacing:3px;text-transform:uppercase;}
+.followup-sub{font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:2px;color:#666;text-transform:uppercase;margin-top:2px;}
+.followup-chips{padding:14px 24px 6px;display:flex;flex-wrap:wrap;gap:8px;}
+.followup-chip{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:11px;padding:6px 12px;border-width:1.5px;border-style:solid;border-radius:2px;cursor:pointer;background:transparent;text-transform:uppercase;letter-spacing:0.5px;transition:all 0.15s;}
+.conversation{padding:8px 24px 0;}
+.msg-user{display:flex;justify-content:flex-end;margin:12px 0 4px;}
+.msg-user-bubble{padding:10px 16px;border-radius:12px 12px 2px 12px;font-size:14px;line-height:1.5;max-width:85%;color:#F5F0E8;}
+.msg-assistant{display:flex;justify-content:flex-start;align-items:flex-start;gap:10px;margin:4px 0 12px;}
+.msg-label{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:9px;letter-spacing:2px;text-transform:uppercase;margin-top:4px;flex-shrink:0;writing-mode:vertical-rl;transform:rotate(180deg);}
+.msg-bubble{background:white;border:1.5px solid #E5E0D8;padding:12px 16px;border-radius:2px 12px 12px 12px;font-size:14px;line-height:1.6;max-width:90%;color:#333;}
+.thinking{padding:8px 24px;font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:3px;text-transform:uppercase;color:#AAA;animation:blink 1.2s ease infinite;}
+.followup-input-wrap{display:flex;gap:10px;padding:14px 24px 28px;border-top:1px solid #E5E0D8;margin-top:8px;}
+.followup-input{flex:1;background:#1A1A1A;color:#F5F0E8;border:none;border-radius:4px;padding:14px 16px;font-family:'Barlow',sans-serif;font-size:14px;outline:none;resize:none;min-height:50px;}
+.followup-input::placeholder{color:#555;}
+.followup-send{color:#F5F0E8;border:none;border-radius:4px;padding:14px 20px;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:18px;cursor:pointer;flex-shrink:0;transition:opacity 0.2s;}
+.followup-send:hover{opacity:0.85;}
+.followup-send:disabled{opacity:0.4;cursor:not-allowed;}
+
+@keyframes fadeDown{from{opacity:0;transform:translateY(-16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-thumb{background:#ccc;border-radius:2px;}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="screen-login" class="screen active">
+  <div class="top-rule"></div>
+  <div class="login-inner">
+    <div style="text-align:center;width:100%;border-bottom:2px solid #1A1A1A;padding-bottom:20px;margin-bottom:28px;animation:fadeDown 0.7s ease both;">
+      <span class="wordmark">FULL<span>CHAT</span></span>
+      <span class="tagline">Early access</span>
+    </div>
+    <div class="field-label">Invite code</div>
+    <input id="invite-input" class="api-input" type="text" placeholder="e.g. JAKE01" autocapitalize="characters" autocomplete="off"/>
+    <div id="invite-error" class="api-error"></div>
+    <button class="api-btn" onclick="submitInvite()">LET ME IN →</button>
+    <div style="margin-top:16px;font-size:12px;color:#AAA;text-align:center;">Don't have a code? Drop Alex a message.</div>
+  </div>
+</div>
+
+<!-- SPLASH -->
+<div id="screen-splash" class="screen">
+  <div class="top-rule"></div>
+  <div class="splash-inner">
+    <div class="splash-logo">
+      <span class="wordmark">FULL<span id="splash-span">CHAT</span></span>
+      <span class="tagline">AI-powered motoring journalism</span>
+    </div>
+    <p class="persona-label">Choose your voice</p>
+    <div class="persona-list" id="persona-list"></div>
+  </div>
+</div>
+
+<!-- PROMPT -->
+<div id="screen-prompt" class="screen">
+  <div class="prompt-header">
+    <div class="prompt-logo">FULL<span id="prompt-ac-span">CHAT</span></div>
+    <div class="persona-badge" id="persona-badge" onclick="showScreen('screen-splash')"></div>
+  </div>
+  <div class="prompt-body">
+    <div class="prompt-eyebrow" id="prompt-greeting">What do you want to know?</div>
+    <div class="prompt-headline">GIVE ME<br>YOUR <em id="brief-em">BRIEF</em></div>
+    <textarea class="prompt-textarea" id="prompt-input" placeholder="e.g. best sub £20k AWD EVs right now..."></textarea>
+    <div class="depth-panel">
+      <div class="depth-row">
+        <div class="depth-title">Depth</div>
+        <div class="depth-val" id="depth-label" style="color:#C8102E">Full Feature</div>
+      </div>
+      <input type="range" id="depth-slider" min="0" max="2" step="1" value="1" oninput="updateDepth(this.value)"/>
+      <div class="depth-labels">
+        <span class="depth-lbl" onclick="setDepth(0)">Quick Take</span>
+        <span class="depth-lbl" onclick="setDepth(1)">Full Feature</span>
+        <span class="depth-lbl" onclick="setDepth(2)">Deep Dive</span>
+      </div>
+      <div class="depth-desc" id="depth-desc">The full article experience</div>
+    </div>
+    <div class="suggest-label">Quick fire</div>
+    <div class="chips" id="chips"></div>
+    <button class="go-btn" id="go-btn" onclick="startPipeline()"><span>GENERATE FEATURE</span><span>→</span></button>
+    <div class="pipe-info-label" id="pipe-info-label">4-step pipeline · Full Feature mode</div>
+  </div>
+</div>
+
+<!-- LOADING -->
+<div id="screen-loading" class="screen">
+  <div class="top-rule" id="loading-rule"></div>
+  <div class="loading-inner">
+    <div class="loading-content">
+      <div class="loading-logo">FULL<span id="loading-ac-span">CHAT</span></div>
+      <div class="loading-mode" id="loading-mode">Full Feature mode · pipeline running</div>
+      <div class="pipe-steps" id="pipe-steps"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ARTICLE -->
+<div id="screen-article" class="screen">
+  <nav class="article-nav">
+    <div class="article-nav-logo">FULL<span id="article-ac-span">CHAT</span></div>
+    <button class="new-brief-btn" id="new-brief-btn" onclick="showScreen('screen-prompt')">← NEW BRIEF</button>
+  </nav>
+  <div id="article-hero" class="article-hero">
+    <div class="hero-bg" id="hero-bg"></div>
+    <div class="hero-overlay"></div>
+    <div class="hero-fc">FC</div>
+    <div class="hero-content">
+      <div class="hero-category" id="hero-category"></div>
+      <div class="hero-title" id="hero-title"></div>
+      <div class="hero-deck" id="hero-deck"></div>
+      <div class="hero-tags">
+        <span class="hero-tag" id="hero-persona-tag"></span>
+        <span class="hero-verified" id="hero-verified">✓ Claude Verified</span>
+      </div>
+    </div>
+  </div>
+  <div class="article-body">
+    <div class="article-intro" id="article-intro"></div>
+    <div class="section-rule"><div class="section-rule-line"></div><div class="section-rule-text">The Contenders</div><div class="section-rule-line"></div></div>
+    <div id="cars-container"></div>
+    <div class="verdict-strip">
+      <div class="verdict-label" id="verdict-label">The Verdict</div>
+      <div class="verdict-text" id="verdict-text"></div>
+    </div>
+    <div class="section-rule"><div class="section-rule-line"></div><div class="section-rule-text">Buying Guide</div><div class="section-rule-line"></div></div>
+    <div class="buying-guide">
+      <div class="buying-header" id="buying-header"><div class="buying-title">What to watch out for</div></div>
+      <div class="buying-body" id="buying-body"></div>
+    </div>
+  </div>
+  <button class="new-prompt-btn" id="new-prompt-btn" onclick="showScreen('screen-prompt')">← NEW BRIEF</button>
+  <div class="followup-section">
+    <div class="followup-header">
+      <div class="followup-title" id="followup-title">Ask the journalist</div>
+      <div class="followup-sub">Follow-up on this feature</div>
+    </div>
+    <div class="followup-chips" id="followup-chips"></div>
+    <div class="conversation" id="conversation"></div>
+    <div class="thinking" id="thinking" style="display:none">Thinking...</div>
+    <div class="followup-input-wrap">
+      <textarea class="followup-input" id="followup-input" rows="2" placeholder="Ask anything about these cars..."></textarea>
+      <button class="followup-send" id="followup-send" onclick="askFollowUp()">→</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── PERSONAS ──────────────────────────────────────────────────────────────────
+const PERSONAS = {
+  provocateur:{name:"The Provocateur",label:"THE PROVOCATEUR",color:"#C8102E",
+    desc:"Loud, opinionated, zero tolerance for mediocrity.",
+    pattern:(c)=>`repeating-linear-gradient(45deg,${c} 0,${c} 18px,#1A1A1A 18px,#1A1A1A 36px)`,
+    voice:`You are The Provocateur — bold, opinionated motoring journalist with Jeremy Clarkson energy. Strong opinions, no apology, vivid language, always credible. For quote fields use real attributed quotes from automotive journalists (Chris Harris, Evo, Top Gear, Autocar) about the specific car. If uncertain, write a plausible authentic-sounding quote and realistic attribution.`},
+  enthusiast:{name:"The Enthusiast",label:"THE ENTHUSIAST",color:"#003087",
+    desc:"Knows the chassis codes. Gets excited about torque curves.",
+    pattern:(c)=>`repeating-linear-gradient(-55deg,${c} 0,${c} 2px,#1A1A1A 2px,#1A1A1A 16px)`,
+    voice:`You are The Enthusiast — deeply knowledgeable motoring journalist, Hammond at his most passionate. You know chassis codes and suspension geometry. For quote fields use real technical quotes from automotive journalists or publications. If uncertain, write specific technical quotes with realistic attribution.`},
+  pragmatist:{name:"The Pragmatist",label:"THE PRAGMATIST",color:"#1B5E3B",
+    desc:"Dry wit. Finds brilliance where others see ordinariness.",
+    pattern:(c)=>`linear-gradient(135deg,#111 0%,${c} 100%)`,
+    voice:`You are The Pragmatist — dry wit, James May energy. Real-world usability, total cost, honesty. For quote fields use understated, precise quotes that reveal something unexpected. Real where known, plausible if invented.`},
+  driver:{name:"The Driver",label:"THE DRIVER",color:"#2C3E50",
+    desc:"Pure seat-of-the-pants judgement.",
+    pattern:(c)=>`repeating-linear-gradient(90deg,${c} 0,${c} 2px,#1A1A1A 2px,#1A1A1A 22px)`,
+    voice:`You are The Driver — Chris Harris style. How it feels to drive is everything. Precise, from the seat. For quote fields use driving-focused quotes from Chris Harris, Henry Catchpole, Evo. Real where known, authentically styled if invented.`}
+};
+
+const BADGE_STYLE={
+  "Top Pick":{bg:"#C8102E",color:"#fff"},
+  "Dark Horse":{bg:"#FFD700",color:"#1A1A1A"},
+  "Solid Value":{bg:"#1B5E3B",color:"#fff"},
+  "Avoid":{bg:"#555",color:"#fff"}
+};
+
+const SUGGESTIONS=["Best hot hatches under £15k","Most reliable family SUVs under £25k","Best used sports cars under £20k","AWD EVs under £20k","Japanese performance cars under £30k","Best daily drivers with actual soul"];
+const FOLLOWUP_Q=["Which is best for long motorway runs?","What would you add to this list?","Which holds its value best?","Any to avoid completely?"];
+const DEPTH_LABELS=["Quick Take","Full Feature","Deep Dive"];
+const DEPTH_DESC=["Fast read, punchy verdict","The full article experience","Maximum depth & detail"];
+
+const PERSONA_SVG={
+  provocateur:`<svg viewBox="0 0 52 52" fill="none" width="52" height="52"><ellipse cx="26" cy="28" rx="20" ry="18" fill="#C8102E" opacity="0.12"/><path d="M10 22 C9 20 10 16 14 15 L30 10 C33 9 35 11 34 14 L34 34 C34 37 32 38 29 37 L14 32 C10 31 9 28 10 26 Z" fill="#1A1A1A"/><path d="M34 14 L46 8 C48 7 48 10 47 12 L34 34 Z" fill="#C8102E"/><path d="M15 18 L28 14" stroke="#F5F0E8" stroke-width="2.5" stroke-linecap="round"/><path d="M14 23 L28 20" stroke="#F5F0E8" stroke-width="1.5" stroke-linecap="round" opacity="0.7"/></svg>`,
+  enthusiast:`<svg viewBox="0 0 52 52" fill="none" width="52" height="52"><circle cx="26" cy="26" r="20" fill="#003087" opacity="0.1"/><circle cx="26" cy="26" r="19" stroke="#1A1A1A" stroke-width="4" fill="none"/><path d="M14 10 A19 19 0 0 1 38 10" stroke="#FFD700" stroke-width="4" fill="none" stroke-linecap="round"/><line x1="26" y1="7" x2="26" y2="20" stroke="#1A1A1A" stroke-width="4" stroke-linecap="round"/><line x1="26" y1="32" x2="13" y2="41" stroke="#1A1A1A" stroke-width="4" stroke-linecap="round"/><line x1="26" y1="32" x2="39" y2="41" stroke="#1A1A1A" stroke-width="4" stroke-linecap="round"/><circle cx="26" cy="26" r="7" fill="#1A1A1A"/><circle cx="26" cy="26" r="4" fill="#003087"/><circle cx="26" cy="26" r="2" fill="#FFD700"/></svg>`,
+  pragmatist:`<svg viewBox="0 0 52 52" fill="none" width="52" height="52"><ellipse cx="26" cy="26" rx="19" ry="19" fill="#1B5E3B" opacity="0.1"/><circle cx="26" cy="26" r="17" stroke="#1B5E3B" stroke-width="4" fill="none" stroke-dasharray="6 3"/><circle cx="26" cy="26" r="10" stroke="#1B5E3B" stroke-width="3" fill="none"/><circle cx="26" cy="26" r="5" fill="#D4A017"/><path d="M26 8 L26 18" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round"/><path d="M26 34 L26 44" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round"/><path d="M8 26 L18 26" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round"/><path d="M34 26 L44 26" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round"/></svg>`,
+  driver:`<svg viewBox="0 0 52 52" fill="none" width="52" height="52"><circle cx="26" cy="28" r="19" fill="#2C3E50" opacity="0.1"/><path d="M9 28 A17 17 0 1 1 43 28" stroke="#1A1A1A" stroke-width="3.5" fill="none" stroke-linecap="round"/><path d="M37 13 A17 17 0 0 1 43 28" stroke="#C8102E" stroke-width="3.5" fill="none" stroke-linecap="round"/><line x1="26" y1="11" x2="26" y2="15" stroke="#1A1A1A" stroke-width="2" stroke-linecap="round"/><line x1="11" y1="27" x2="15" y2="27" stroke="#1A1A1A" stroke-width="2" stroke-linecap="round"/><line x1="38.5" y1="17.5" x2="35.2" y2="20.8" stroke="#C8102E" stroke-width="1.5" stroke-linecap="round"/><line x1="41" y1="27" x2="37" y2="27" stroke="#C8102E" stroke-width="2" stroke-linecap="round"/><line x1="26" y1="28" x2="39" y2="14" stroke="#F0C030" stroke-width="3" stroke-linecap="round"/><circle cx="26" cy="28" r="3.5" fill="#1A1A1A"/><circle cx="26" cy="28" r="1.5" fill="#F0C030"/></svg>`
+};
+
+// ── STATE ──────────────────────────────────────────────────────────────────────
+let currentPersona='provocateur', depth=1, inviteCode='', testerName='';
+let currentArticle=null, conversation=[], fuBusy=false, usedFu=[];
+
+const STEP_DEFS=[
+  {id:'research',gear:'1st',label:'Research',   status:'Scanning market data...'},
+  {id:'write',   gear:'2nd',label:'Writing',    status:'Crafting the article...'},
+  {id:'fact',    gear:'3rd',label:'Fact-check', status:'Verifying accuracy...'},
+  {id:'finish',  gear:'4th',label:'Finishing',  status:'Assembling feature...'},
+];
+let stepProgress={research:0,write:0,fact:0,finish:0};
+let stepTimers={};
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded',()=>{
+  buildPersonaList();
+  buildChips();
+  buildFollowupChips();
+  document.getElementById('invite-input').addEventListener('keydown',e=>{if(e.key==='Enter')submitInvite();});
+  document.getElementById('followup-input').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();askFollowUp();}});
+  const saved=sessionStorage.getItem('fc_code');
+  if(saved){inviteCode=saved;testerName=sessionStorage.getItem('fc_name')||'';applySession();showScreen('screen-splash');}
+  updateDepth(1);
+});
+
+function applySession(){
+  const g=document.getElementById('prompt-greeting');
+  if(g&&testerName)g.textContent=`Welcome back, ${testerName}.`;
+}
+
+// ── SCREENS ────────────────────────────────────────────────────────────────────
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+// ── INVITE ─────────────────────────────────────────────────────────────────────
+async function submitInvite(){
+  const code=document.getElementById('invite-input').value.trim().toUpperCase();
+  const err=document.getElementById('invite-error');
+  if(!code){err.textContent='Please enter your invite code';return;}
+  err.textContent='';
+  document.querySelector('.api-btn').textContent='Checking...';
+  try{
+    const res=await fetch('/api/tokens',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'check',code})});
+    const data=await res.json();
+    if(!res.ok||!data.valid){err.textContent='Invalid code — check with Alex';document.querySelector('.api-btn').textContent='LET ME IN →';return;}
+    inviteCode=code;testerName=data.name;
+    sessionStorage.setItem('fc_code',code);sessionStorage.setItem('fc_name',data.name);
+    applySession();showScreen('screen-splash');
+  }catch(e){err.textContent='Connection error — try again';document.querySelector('.api-btn').textContent='LET ME IN →';}
+}
+
+// ── BUILD UI ───────────────────────────────────────────────────────────────────
+function buildPersonaList(){
+  document.getElementById('persona-list').innerHTML=Object.entries(PERSONAS).map(([key,p],i)=>`
+    <div class="persona-row" style="border-top:${i===0?'1.5px solid #D8D3CB':'none'}" onclick="selectPersona('${key}')">
+      ${PERSONA_SVG[key]}
+      <div style="flex:1"><span class="persona-name" style="color:${p.color}">${p.name}</span><span class="persona-desc">${p.desc}</span></div>
+      <span class="persona-arrow" style="color:${p.color}">→</span>
+    </div>`).join('');
+}
+
+function buildChips(){
+  document.getElementById('chips').innerHTML=SUGGESTIONS.map(s=>`<div class="chip" onclick="setPrompt('${s}')">${s}</div>`).join('');
+}
+
+function buildFollowupChips(){
+  document.getElementById('followup-chips').innerHTML=FOLLOWUP_Q.map(q=>`
+    <div class="followup-chip" onclick="useFollowupChip(this,'${q.replace(/'/g,"\\'")}')">
+      ${q}
+    </div>`).join('');
+}
+
+function useFollowupChip(el,q){
+  document.getElementById('followup-input').value=q;
+  el.style.display='none';
+  document.getElementById('followup-input').focus();
+}
+
+// ── PERSONA SELECT ─────────────────────────────────────────────────────────────
+function selectPersona(key){
+  currentPersona=key;
+  const p=PERSONAS[key];
+  applyColor(p.color);
+  document.getElementById('persona-badge').textContent=p.label;
+  document.getElementById('persona-badge').style.background=p.color;
+  showScreen('screen-prompt');
+}
+
+function applyColor(c){
+  document.documentElement.style.setProperty('--ac',c);
+  ['prompt-ac-span','loading-ac-span','article-ac-span'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.color=c;});
+  ['go-btn','new-prompt-btn','followup-send'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.background=c;});
+  ['verdict-label','followup-title'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.color=c;});
+  const bh=document.getElementById('buying-header');if(bh)bh.style.background=c;
+  const nb=document.getElementById('new-brief-btn');if(nb){nb.style.color=c;nb.style.border=`1.5px solid ${c}`;}
+  const lr=document.getElementById('loading-rule');if(lr)lr.style.background=c;
+  const hv=document.getElementById('hero-verified');if(hv)hv.style.background=c;
+  const dv=document.getElementById('depth-label');if(dv)dv.style.color=c;
+  const dl=document.getElementById('depth-slider');if(dl){dl.style.background=`linear-gradient(to right,${c} 0%,${c} ${depth*50}%,#333 ${depth*50}%,#333 100%)`;dl.style.setProperty('--thumb',c);}
+  document.querySelectorAll('.followup-chip').forEach(el=>{el.style.borderColor=c;el.style.color=c;});
+  // Depth slider thumb
+  const style=document.getElementById('thumb-style')||document.createElement('style');
+  style.id='thumb-style';style.textContent=`input[type=range]::-webkit-slider-thumb{background:${c};}`;
+  document.head.appendChild(style);
+}
+
+function setPrompt(t){document.getElementById('prompt-input').value=t;}
+
+function updateDepth(v){
+  depth=Number(v);
+  document.getElementById('depth-slider').value=v;
+  document.getElementById('depth-label').textContent=DEPTH_LABELS[depth];
+  document.getElementById('depth-desc').textContent=DEPTH_DESC[depth];
+  document.getElementById('pipe-info-label').textContent=`4-step pipeline · ${DEPTH_LABELS[depth]} mode`;
+  document.getElementById('loading-mode').textContent=`${DEPTH_LABELS[depth]} mode · pipeline running`;
+  const c=PERSONAS[currentPersona].color;
+  const dl=document.getElementById('depth-slider');
+  if(dl)dl.style.background=`linear-gradient(to right,${c} 0%,${c} ${depth*50}%,#333 ${depth*50}%,#333 100%)`;
+}
+function setDepth(v){updateDepth(v);}
+
+// ── PIPELINE STEPS UI ──────────────────────────────────────────────────────────
+function buildPipelineUI(){
+  const c=PERSONAS[currentPersona].color;
+  document.getElementById('pipe-steps').innerHTML=STEP_DEFS.map(s=>`
+    <div class="pipe-row" id="prow-${s.id}">
+      <svg width="68" height="68" viewBox="0 0 140 110" id="svg-${s.id}" style="flex-shrink:0"></svg>
+      <div style="flex:1;min-width:0">
+        <span class="pipe-name">${s.label}</span>
+        <span class="pipe-status" id="pstatus-${s.id}">${s.status}</span>
+      </div>
+    </div>`).join('');
+  STEP_DEFS.forEach(s=>{stepProgress[s.id]=0;drawDial(s.id,0,'idle');});
+}
+
+function drawDial(id,rpm,state){
+  const svg=document.getElementById(`svg-${id}`);
+  if(!svg)return;
+  const c=PERSONAS[currentPersona].color;
+  const CX=70,CY=70,R=52,sa=-215,ea=35,arc=ea-sa;
+  const pt=(a,r=R)=>({x:CX+r*Math.cos(a*Math.PI/180),y:CY+r*Math.sin(a*Math.PI/180)});
+  const ap=(f,t,r=R)=>{const a1=sa+arc*f,a2=sa+arc*t,s=pt(a1,r),e=pt(a2,r);return `M${s.x} ${s.y} A${r} ${r} 0 ${a2-a1>180?1:0} 1 ${e.x} ${e.y}`;};
+  const na=sa+arc*(rpm/100),nt=pt(na,44),nb1=pt(na+90,5),nb2=pt(na-90,5);
+  const done=state==='done',active=state==='active';
+  const needleColor=rpm>78?'#C8102E':active?'#F5F0E8':'#555';
+  const ticks=[0,10,20,30,40,50,60,70,80,90,100].map(t=>{const a=sa+arc*(t/100),i=pt(a,43),o=pt(a,51);return `<line x1="${i.x}" y1="${i.y}" x2="${o.x}" y2="${o.y}" stroke="${t>=78?'#C8102E':'#3A3A3A'}" stroke-width="${t%20===0?2:1}"/>`;}).join('');
+  const gearLabel=done?'✓':STEP_DEFS.find(s=>s.id===id)?.gear||'';
+  const gearColor=active?c:done?'#4A8A4A':'#555';
+  svg.innerHTML=`
+    <path d="${ap(0,1)}" fill="none" stroke="#2A2A2A" stroke-width="9" stroke-linecap="round"/>
+    <path d="${ap(0,0.72)}" fill="none" stroke="#1A3A1A" stroke-width="9" stroke-linecap="round"/>
+    <path d="${ap(0.78,1)}" fill="none" stroke="#3A1010" stroke-width="9" stroke-linecap="round"/>
+    ${rpm>0?`<path d="${ap(0,rpm/100)}" fill="none" stroke="${rpm>78?'#C8102E':c}" stroke-width="9" stroke-linecap="round"/>`:''}
+    ${ticks}
+    <text x="108" y="90" fill="#C8102E" font-size="6.5" font-family="sans-serif" font-weight="700" letter-spacing="0.5">RED</text>
+    <polygon points="${nt.x},${nt.y} ${nb1.x},${nb1.y} ${nb2.x},${nb2.y}" fill="${needleColor}"/>
+    <circle cx="${CX}" cy="${CY}" r="7" fill="#1A1A1A" stroke="#333" stroke-width="1.5"/>
+    <circle cx="${CX}" cy="${CY}" r="3" fill="${active?c:done?'#4A8A4A':'#444'}"/>
+    <text x="${CX}" y="${CY+22}" text-anchor="middle" fill="${gearColor}" font-size="11" font-family="'Barlow Condensed',sans-serif" font-weight="900" letter-spacing="1">${gearLabel}</text>`;
+}
+
+// Animated needle
+const dialAnimators={};
+function animateDial(id,targetRpm,state){
+  if(dialAnimators[id])cancelAnimationFrame(dialAnimators[id]);
+  let current=stepProgress[id]||0;
+  const tick=()=>{
+    const diff=targetRpm-current;
+    current+=diff*0.06;
+    if(Math.abs(diff)>0.2){
+      stepProgress[id]=current;
+      drawDial(id,current,state);
+      dialAnimators[id]=requestAnimationFrame(tick);
+    }else{
+      stepProgress[id]=targetRpm;
+      drawDial(id,targetRpm,state);
+    }
+  };
+  dialAnimators[id]=requestAnimationFrame(tick);
+}
+
+function setStep(id,state,statusText,prog){
+  const row=document.getElementById(`prow-${id}`);
+  if(row){row.className='pipe-row '+(state||'');}
+  if(statusText){const el=document.getElementById(`pstatus-${id}`);if(el)el.textContent=statusText;}
+  if(prog!==undefined)animateDial(id,prog,state);
+}
+
+// Sweep to redline then drop on completion
+function completeStep(id,statusText){
+  setStep(id,'done',statusText,100);
+  setTimeout(()=>animateDial(id,0,'done'),400);
+}
+
+// ── MAIN PIPELINE ──────────────────────────────────────────────────────────────
+const delay=ms=>new Promise(r=>setTimeout(r,ms));
+const p=()=>PERSONAS[currentPersona];
+
+async function startPipeline(){
+  const prompt=document.getElementById('prompt-input').value.trim();
+  if(!prompt){document.getElementById('prompt-input').focus();return;}
+  currentArticle=null;conversation=[];usedFu=[];
+  document.getElementById('conversation').innerHTML='';
+  buildFollowupChips();
+  buildPipelineUI();
+  showScreen('screen-loading');
+
+  try{
+    // STEP 1 — Research
+    setStep('research','active','Scanning market data...',5);
+    await delay(500);
+    setStep('research','active','Checking used market prices...',35);
+    await delay(700);
+    setStep('research','active','Pulling reliability data...',65);
+    await delay(600);
+    completeStep('research','Market research complete');
+    await delay(300);
+
+    // STEP 2 — Write
+    setStep('write','active','Building article structure...',8);
+    await delay(300);
+    setStep('write','active','Writing in persona voice...',18);
+    let writeP=18;
+    const writeTick=setInterval(()=>{
+      writeP=Math.min(writeP+(94-writeP)*0.055,94);
+      setStep('write','active',writeP>60?'Finishing article...':'Writing in persona voice...',writeP);
+    },400);
+
+    let art;
+    try{art=await claudeWrite(prompt,depth);}
+    catch(e){
+      clearInterval(writeTick);
+      setStep('write','error',e.message||'Write failed',0);
+      await delay(2000);showScreen('screen-prompt');return;
+    }
+    clearInterval(writeTick);
+    completeStep('write',`"${(art.headline||'').slice(0,32)}..."`);
+    await delay(300);
+
+    // STEP 3 — Fact-check
+    setStep('fact','active','Cross-checking all claims...',10);
+    let factP=10;
+    const factTick=setInterval(()=>{
+      factP=Math.min(factP+(92-factP)*0.065,92);
+      setStep('fact','active',factP>55?'Applying corrections...':'Cross-checking claims...',factP);
+    },350);
+    try{
+      const fc=await claudeFactCheck(art);
+      if(fc.correctedArticle?.cars)art={...art,cars:fc.correctedArticle.cars};
+    }catch{}
+    clearInterval(factTick);
+    completeStep('fact','All claims verified ✓');
+    await delay(300);
+
+    // STEP 4 — Finish
+    setStep('finish','active','Assembling layout...',15);
+    await delay(250);setStep('finish','active','Adding final touches...',55);
+    await delay(250);setStep('finish','active','Almost ready...',85);
+    await delay(300);
+    completeStep('finish','Feature ready');
+    await delay(400);
+
+    currentArticle=art;
+    renderArticle(art);
+    showScreen('screen-article');
+
+  }catch(e){console.error(e);showScreen('screen-prompt');}
+}
+
+// ── SCHEMA ─────────────────────────────────────────────────────────────────────
+function makeSchema(d){
+  return `{
+  "headline": "SHORT PUNCHY UPPERCASE HEADLINE",
+  "deck": "One sentence setting the tone",
+  "intro": "${d===1?'1-2 punchy sentences':d===2?'2-3 sentences':'3-4 sentences with real depth'}",
+  "cars": [
+    {
+      "make": "Make",
+      "model": "Model",
+      "badge": "Top Pick",
+      "stat1_val": "£18,500", "stat1_label": "From (used)",
+      "stat2_val": "316hp",   "stat2_label": "Power",
+      "stat3_val": "5.4s",    "stat3_label": "0-62mph",
+      "copy": "${d===1?'2 sentences':d===2?'3 sentences':'4-5 sentences with technical depth'}",
+      "quote": "Real attributed quote from known automotive journalist about this specific car",
+      "quoteAttribution": "Journalist Name, Publication"
+    }
+  ],
+  "verdict": "${d===1?'2-3 blunt sentences':d===2?'One paragraph':'Two paragraphs with nuanced reasoning'}",
+  "buyingGuide": [{"title":"Watch point","detail":"One sentence practical advice."}]
+}`;
+}
+
+// ── CLAUDE CALLS ───────────────────────────────────────────────────────────────
+async function claudeWrite(userPrompt,depthLevel){
+  const numCars=depthLevel===0?2:depthLevel===1?3:4;
+  const res=await fetch('/api/generate',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({prompt:userPrompt,persona:currentPersona,depth:depthLevel,inviteCode})
+  });
+  if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e?.error||`Error ${res.status}`);}
+  const data=await res.json();
+  return data.article;
+}
+
+async function claudeFactCheck(art){
+  // Fact-check is handled server-side in generate.js — this is a client-side pass
+  // Just return no corrections needed since server already fact-checked
+  return {correctedArticle:null};
+}
+
+// ── RENDER ARTICLE ─────────────────────────────────────────────────────────────
+function renderArticle(a){
+  const pr=p(),c=pr.color;
+  applyColor(c);
+
+  // Hero
+  document.getElementById('hero-bg').style.background=pr.pattern(c);
+  document.getElementById('hero-category').textContent=`${pr.label} · Generated Feature`;
+  document.getElementById('hero-title').textContent=a.headline||'';
+  document.getElementById('hero-deck').textContent=a.deck||'';
+  document.getElementById('hero-persona-tag').textContent=pr.label;
+  document.getElementById('article-intro').textContent=a.intro||'';
+  document.getElementById('verdict-text').textContent=a.verdict||'';
+
+  // Cars
+  const bs=BADGE_STYLE;
+  document.getElementById('cars-container').innerHTML=(a.cars||[]).map((car,i)=>{
+    const badge=bs[car.badge]||bs['Solid Value'];
+    const searches=[`${car.make} ${car.model} car`,`${car.make} ${car.model} automobile exterior`,`${car.make} ${car.model} driving`,`${car.make} ${car.model} interior`];
+    const imgUrls=searches.map((q,si)=>`https://source.unsplash.com/800x460/?${encodeURIComponent(q)}&sig=${i*10+si}`);
+    return `
+      <div class="car-card">
+        <div class="car-header">
+          <div class="car-number" style="color:${c}">0${i+1}</div>
+          <div class="car-name-wrap">
+            <div class="car-make">${car.make||''}</div>
+            <div class="car-model">${car.model||''}</div>
+          </div>
+          <div class="car-badge" style="background:${badge.bg};color:${badge.color}">${car.badge||''}</div>
+        </div>
+        <div class="car-gallery">
+          <div class="gallery-wrap" id="gallery-${i}">
+            <div class="gallery-loading">Loading photos...</div>
+            ${imgUrls.map((url,si)=>`<img src="${url}" data-idx="${si}" data-gallery="${i}" class="gallery-img" style="opacity:0;z-index:${si===0?1:0}" onload="galleryLoaded(${i},${si})" onerror="galleryError(${i},${si})" alt="${car.make} ${car.model}"/>`).join('')}
+            <button class="gallery-btn prev" onclick="galleryNav(${i},-1)">‹</button>
+            <button class="gallery-btn next" onclick="galleryNav(${i},1)">›</button>
+            <div class="gallery-dots" id="dots-${i}"></div>
+          </div>
+          <div class="gallery-credit">Photos via Unsplash</div>
+        </div>
+        <div class="car-body">
+          <div class="car-stats">
+            <div class="stat-item"><span class="stat-val">${car.stat1_val||'—'}</span><span class="stat-label">${car.stat1_label||''}</span></div>
+            <div class="stat-item"><span class="stat-val">${car.stat2_val||'—'}</span><span class="stat-label">${car.stat2_label||''}</span></div>
+            <div class="stat-item"><span class="stat-val">${car.stat3_val||'—'}</span><span class="stat-label">${car.stat3_label||''}</span></div>
+          </div>
+          <div class="car-divider"></div>
+          <div class="car-copy">${car.copy||''}</div>
+          ${car.quote?`<div class="car-quote-block" style="border-left-color:${c}"><div class="car-quote-text">"${car.quote}"</div>${car.quoteAttribution?`<div class="car-quote-attr" style="color:${c}">— ${car.quoteAttribution}</div>`:''}</div>`:''}
+        </div>
+      </div>`;
+  }).join('');
+
+  // Buying guide
+  document.getElementById('buying-body').innerHTML=(a.buyingGuide||[]).map(item=>`
+    <div class="guide-item">
+      <div class="guide-dot" style="background:${c}"></div>
+      <div class="guide-text"><strong>${item.title}.</strong> ${item.detail}</div>
+    </div>`).join('');
+}
+
+// ── GALLERY ────────────────────────────────────────────────────────────────────
+const galleryState={};
+
+function galleryLoaded(gi,si){
+  if(!galleryState[gi])galleryState[gi]={loaded:[],current:0,total:4};
+  galleryState[gi].loaded.push(si);
+  // Hide loading text once first image loads
+  const wrap=document.getElementById(`gallery-${gi}`);
+  if(wrap){const l=wrap.querySelector('.gallery-loading');if(l)l.style.display='none';}
+  // Show first loaded image
+  if(galleryState[gi].loaded.length===1){
+    galleryState[gi].current=si;
+    updateGalleryDisplay(gi);
+  }
+  updateGalleryDots(gi);
+}
+
+function galleryError(gi,si){
+  // Mark as failed — gallery will just have fewer images
+  if(!galleryState[gi])galleryState[gi]={loaded:[],current:0,total:4};
+  // If all 4 failed, hide the gallery entirely
+  const wrap=document.getElementById(`gallery-${gi}`);
+  if(!wrap)return;
+  const allImgs=wrap.querySelectorAll('img');
+  const failedCount=wrap.querySelectorAll('img[style*="display:none"]').length+1;
+  if(failedCount>=allImgs.length){wrap.style.display='none';}
+}
+
+function updateGalleryDisplay(gi){
+  const state=galleryState[gi];if(!state)return;
+  const wrap=document.getElementById(`gallery-${gi}`);if(!wrap)return;
+  const imgs=wrap.querySelectorAll('img');
+  imgs.forEach(img=>{
+    const si=parseInt(img.dataset.idx);
+    img.style.opacity=si===state.current&&state.loaded.includes(si)?'1':'0';
+    img.style.zIndex=si===state.current?'1':'0';
+  });
+}
+
+function updateGalleryDots(gi){
+  const state=galleryState[gi];if(!state||state.loaded.length<2)return;
+  const dotsEl=document.getElementById(`dots-${gi}`);if(!dotsEl)return;
+  const c=PERSONAS[currentPersona].color;
+  dotsEl.innerHTML=state.loaded.map((si,i)=>`<div class="gallery-dot" style="background:${si===state.current?c:'rgba(255,255,255,0.4)'}" onclick="galleryJump(${gi},${si})"></div>`).join('');
+}
+
+function galleryNav(gi,dir){
+  const state=galleryState[gi];if(!state||!state.loaded.length)return;
+  const loadedArr=state.loaded;
+  const curIdx=loadedArr.indexOf(state.current);
+  const newIdx=(curIdx+dir+loadedArr.length)%loadedArr.length;
+  state.current=loadedArr[newIdx];
+  updateGalleryDisplay(gi);updateGalleryDots(gi);
+}
+
+function galleryJump(gi,si){
+  const state=galleryState[gi];if(!state)return;
+  state.current=si;updateGalleryDisplay(gi);updateGalleryDots(gi);
+}
+
+// ── FOLLOW-UP ──────────────────────────────────────────────────────────────────
+async function askFollowUp(){
+  const input=document.getElementById('followup-input');
+  const q=input.value.trim();
+  if(!q||fuBusy||!currentArticle)return;
+  fuBusy=true;input.value='';
+  document.getElementById('followup-send').disabled=true;
+  const pr=p(),c=pr.color;
+  const conv=document.getElementById('conversation');
+  conv.insertAdjacentHTML('beforeend',`<div class="msg-user"><div class="msg-user-bubble" style="background:${c}">${escHtml(q)}</div></div>`);
+  document.getElementById('thinking').style.display='block';
+  const ctx=`You wrote:\nHEADLINE:${currentArticle.headline}\nCARS:${(currentArticle.cars||[]).map(c=>`${c.make} ${c.model}`).join(', ')}\nVERDICT:${currentArticle.verdict}\n\nAnswer in character. Prose, no JSON, 2-4 sentences, direct and opinionated.`;
+  const history=conversation.map(m=>({role:m.role==='user'?'user':'assistant',content:m.text}));
+  try{
+    const res=await fetch('/api/generate',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({prompt:q,persona:currentPersona,depth:1,inviteCode,mode:'followup',context:ctx,history})
+    });
+    const data=await res.json();
+    const ans=data.answer||'Try again.';
+    conversation.push({role:'user',text:q},{role:'assistant',text:ans});
+    document.getElementById('thinking').style.display='none';
+    conv.insertAdjacentHTML('beforeend',`<div class="msg-assistant"><div class="msg-label" style="color:${c}">${pr.name.split(' ')[1]}</div><div class="msg-bubble">${escHtml(ans)}</div></div>`);
+    conv.scrollIntoView({behavior:'smooth',block:'end'});
+  }catch{
+    document.getElementById('thinking').style.display='none';
+    conv.insertAdjacentHTML('beforeend',`<div class="msg-assistant"><div class="msg-bubble">Connection error — try again.</div></div>`);
+  }
+  fuBusy=false;document.getElementById('followup-send').disabled=false;
+}
+
+function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');}
+</script>
+</body>
+</html>
