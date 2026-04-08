@@ -49,7 +49,7 @@ module.exports = async (req, res) => {
 
   // Check tokens
   const { data: tester, error: tErr } = await supabase
-    .from('testers').select('id, tokens_remaining').eq('invite_code', normCode).eq('active', true).single();
+    .from('testers').select('id, tokens_remaining, tokens_used').eq('invite_code', normCode).eq('active', true).single();
 
   if (tErr || !tester) return res.status(403).json({ error: 'Invalid or inactive invite code' });
   if (tester.tokens_remaining < cost) return res.status(402).json({ error: 'Insufficient tokens', tokens_remaining: tester.tokens_remaining });
@@ -122,16 +122,20 @@ Return: {"correctedArticle":{"cars":[...corrected cars with same full structure.
       if (fc.correctedArticle?.cars) article = { ...article, cars: fc.correctedArticle.cars };
     } catch {} // Fact-check is non-fatal
 
-    // ── LOG & DEDUCT ────────────────────────────────────────────────────────
-    await supabase.from('testers').update({
-      tokens_remaining: tester.tokens_remaining - cost,
-      tokens_used: tester.tokens_used + cost
-    }).eq('id', tester.id);
+    // ── LOG & DEDUCT (non-fatal) ────────────────────────────────────────────
+    try {
+      await supabase.from('testers').update({
+        tokens_remaining: tester.tokens_remaining - cost,
+        tokens_used: (tester.tokens_used || 0) + cost
+      }).eq('id', tester.id);
 
-    await supabase.from('generations').insert({
-      tester_id: tester.id, prompt, persona,
-      tokens_used: cost, article_headline: article.headline || null
-    });
+      await supabase.from('generations').insert({
+        tester_id: tester.id, prompt, persona,
+        tokens_used: cost, article_headline: article.headline || null
+      });
+    } catch (logErr) {
+      console.warn('Token logging failed (non-fatal):', logErr.message);
+    }
 
     return res.status(200).json({
       article,
