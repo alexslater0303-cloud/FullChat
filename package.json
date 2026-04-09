@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "description": "AI-powered motoring journalism",
   "dependencies": {
-    "@supabase/supabase-js": "^2.39.0",
-    "@anthropic-ai/sdk": "^0.20.0"
+    "@anthropic-ai/sdk": "^0.20.0",
+    "@google/generative-ai": "^0.24.1",
+    "@supabase/supabase-js": "^2.39.0"
   }
 }
