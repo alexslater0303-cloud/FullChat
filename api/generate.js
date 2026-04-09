@@ -1,43 +1,40 @@
 const Anthropic = require('@anthropic-ai/sdk');
-// 2026 UPDATE: Use the NEW @google/genai library
-const { GoogleGenAI } = require('@google/genai'); 
+const { GoogleGenerativeAI } = require("@google/generative-ai"); // Use the STABLE 2025 version for now
 const { supabase } = require('../lib/supabase');
 const { PERSONAS } = require('../lib/personas');
 
+// API Clients
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-// New initialization (will auto-read GOOGLE_API_KEY or use your provided key)
-const googleAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 module.exports = async (req, res) => {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  if (req.method !== 'POST') return res.status(405).send();
   const { prompt, persona, inviteCode } = req.body;
 
   try {
     // 1. AUTH
     const { data: tester } = await supabase.from('testers').select('*').eq('invite_code', inviteCode).single();
-    if (!tester) return res.status(401).json({ error: 'Invalid Code' });
+    if (!tester) return res.status(401).json({ error: 'Auth Failed' });
 
-    // 2. STAGE 1: GEMINI RESEARCH (Using 2026 Interactions API)
-    // Using gemini-3.1-flash, the current cost-efficient standard
-    const research = await googleAI.interactions.create({
-      model: 'gemini-3.1-flash',
-      input: `Find 3 cars in the UK for: "${prompt}". Research price, HP, and a YouTube ID.`,
-      tools: [{ type: 'google_search' }] // Built-in search grounding
-    });
-    const facts = research.text; 
+    // 2. STAGE 1: GEMINI RESEARCH
+    // Using gemini-2.0-flash (The 2026 stable workhorse)
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+    const research = await model.generateContent(`UK Car Research: "${prompt}". Need 3 cars with Price, HP, and YouTube ID.`);
+    const facts = research.response.text();
 
-    // 3. STAGE 2: CLAUDE WRITING (Using 2026 Stable Model)
+    // 3. STAGE 2: CLAUDE WRITING
     const p = PERSONAS[persona] || PERSONAS.default;
-    const writerRes = await anthropic.messages.create({
-      model: "claude-4-sonnet-20260307", // The new April 2026 production standard
+    const msg = await anthropic.messages.create({
+      model: "claude-3-5-sonnet-latest", // Use 'latest' to avoid the 2026 model-ID sunset
       max_tokens: 3000,
-      system: `You are ${p.name}. Style: ${p.style}. Research: ${facts}`,
-      messages: [{ role: "user", content: `Create JSON article for: ${prompt}` }]
+      system: `You are ${p.name}. Style: ${p.style}. Facts: ${facts}`,
+      messages: [{ role: "user", content: `Write a car guide for ${prompt}. Return ONLY JSON.` }]
     });
 
-    const article = JSON.parse(writerRes.content[0].text.match(/\{[\s\S]*\}/)[0]);
-
-    // 4. STAGE 3: MEDIA (2026 safe dynamic placeholder)
+    // 4. CLEAN JSON & IMAGE INJECTION
+    const jsonStr = msg.content[0].text.match(/\{[\s\S]*\}/)[0];
+    let article = JSON.parse(jsonStr);
+    
     article.cars = article.cars.map(car => ({
       ...car,
       imageUrl: `https://loremflickr.com/800/600/${encodeURIComponent(car.make + ' ' + car.model)}/all`
@@ -46,7 +43,7 @@ module.exports = async (req, res) => {
     return res.status(200).json(article);
 
   } catch (err) {
-    console.error('Pipeline Error:', err);
+    console.error("Pipeline Crash:", err.message);
     return res.status(500).json({ error: "Pipeline failed", detail: err.message });
   }
 };
