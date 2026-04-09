@@ -1,90 +1,63 @@
 const Anthropic = require('@anthropic-ai/sdk');
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 const { supabase } = require('../lib/supabase');
 const { PERSONAS } = require('../lib/personas');
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-const GENERATION_COST = 40;
-const FOLLOWUP_COST   = 10;
-
-// 2026 UPDATE: Switched to stable Sonnet 4.6 (Replaces deprecated 3.7 and Sonnet 4 preview)
-const CURRENT_MODEL = 'claude-3-5-sonnet-20241022'; // Use 'claude-3-5-sonnet-latest' for auto-updating
-
-function makeSchema(depth) {
-  const numCars  = depth === 0 ? 2 : depth === 1 ? 3 : 4;
-  const copyLen  = depth === 0 ? '2 sentences' : depth === 1 ? '3 sentences' : '4-5 sentences with technical depth';
-  const introLen = depth === 0 ? '1-2 punchy sentences' : depth === 1 ? '2-3 sentences' : '3-4 sentences with real depth';
-  const verdict  = depth === 0 ? '2-3 blunt sentences' : depth === 1 ? 'One paragraph' : 'Two paragraphs with nuanced reasoning';
-  return { numCars, schema: `{
-  "headline": "SHORT PUNCHY UPPERCASE HEADLINE",
-  "deck": "One sentence setting the tone",
-  "intro": "${introLen}",
-  "cars": [
-    {
-      "make": "Make", "model": "Model", "badge": "Top Pick",
-      "stat1_val": "£18,500", "stat1_label": "From (used)",
-      "stat2_val": "316hp",   "stat2_label": "Power",
-      "stat3_val": "5.4s",    "stat3_label": "0-60",
-      "copy": "${copyLen}",
-      "imageUrl": "placeholder" 
-    }
-  ],
-  "verdict_title": "THE VERDICT",
-  "verdict_copy": "${verdict}"
-}`};
-}
+// Initialize Clients
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY);
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-
-  const { prompt, persona, inviteCode, isFollowUp, articleContext } = req.body;
+  const { prompt, persona, inviteCode } = req.body;
 
   try {
-    // 1. AUTH & QUOTA CHECK
-    const { data: tester, error: tErr } = await supabase.from('testers').select('*').eq('invite_code', inviteCode).single();
-    if (tErr || !tester) return res.status(401).json({ error: 'Invalid invite code' });
+    // ── STAGE 0: AUTH ──────────────────────────────────────────────────────
+    const { data: tester } = await supabase.from('testers').select('*').eq('invite_code', inviteCode).single();
+    if (!tester) return res.status(401).json({ error: 'Invalid Code' });
+
+    // ── STAGE 1: GEMINI RESEARCH (The "Eyes") ──────────────────────────────
+    // Gemini 2.0/3.0 is used here for its superior web-search grounding
+    const researchModel = genAI.getGenerativeModel({ model: "gemini-2.0-pro-exp" });
+    const researchPrompt = `Research the topic: "${prompt}". 
+    Find 3 specific cars available in the UK. For each, find:
+    1. Real used price range (£).
+    2. Power (hp) and 0-60mph time.
+    3. One specific YouTube Review Video URL.
+    Return as a concise list of facts.`;
     
-    const cost = isFollowUp ? FOLLOWUP_COST : GENERATION_COST;
-    if (tester.tokens_remaining < cost) return res.status(403).json({ error: 'Out of tokens' });
+    const researchData = await researchModel.generateContent(researchPrompt);
+    const facts = researchData.response.text();
 
+    // ── STAGE 2: CLAUDE WRITING (The "Voice") ──────────────────────────────
+    // Using the stable April 2026 Claude 3.7 model
     const p = PERSONAS[persona] || PERSONAS.default;
-    const { numCars, schema } = makeSchema(tester.depth || 0);
-
-    // 2. GENERATE CONTENT
-    const systemPrompt = `You are ${p.name}. Style: ${p.style}. Return ONLY valid JSON matching this schema: ${schema}`;
-    const userMessage = isFollowUp 
-      ? `Original Article: ${JSON.stringify(articleContext)}\n\nUser Question: ${prompt}\n\nUpdate the article based on the prompt. Keep the JSON structure.`
-      : `Topic/URL: ${prompt}\n\nFind exactly ${numCars} cars. High-quality UK market info only.`;
-
-    const response = await client.messages.create({
-      model: CURRENT_MODEL,
-      max_tokens: 4000,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: userMessage }]
+    const writerRes = await anthropic.messages.create({
+      model: "claude-3-7-sonnet", 
+      max_tokens: 3000,
+      system: `You are ${p.name}. Style: ${p.style}. Use this research to write a car buying guide: ${facts}`,
+      messages: [{ 
+        role: "user", 
+        content: `Create a JSON article. Format: { "headline": "", "intro": "", "cars": [{ "make": "", "model": "", "price": "", "specs": "", "youtubeUrl": "", "copy": "" }] }` 
+      }]
     });
 
-    const rawText = response.content[0].text;
-    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error("Claude didn't return valid JSON");
-    
-    let article = JSON.parse(jsonMatch[0]);
+    let article = JSON.parse(writerRes.content[0].text.match(/\{[\s\S]*\}/)[0]);
 
-    // 3. 2026 IMAGE SYSTEM (Replaces dead Unsplash Source)
+    // ── STAGE 3: MEDIA POPULATION (The "Images") ───────────────────────────
     article.cars = article.cars.map(car => ({
       ...car,
+      // 2026-safe dynamic image redirector
       imageUrl: `https://loremflickr.com/800/600/${encodeURIComponent(car.make + ' ' + car.model + ' car')}/all`
     }));
 
-    // 4. DEDUCT TOKENS
-    await supabase.from('testers').update({
-      tokens_remaining: tester.tokens_remaining - cost,
-      tokens_used: (tester.tokens_used || 0) + cost
-    }).eq('id', tester.id);
+    // ── STAGE 4: DEDUCT & RESPOND ──────────────────────────────────────────
+    await supabase.from('testers').update({ tokens_remaining: tester.tokens_remaining - 40 }).eq('id', tester.id);
 
-    return res.status(200).json(article);
+    return res.status(200).json({ article });
 
   } catch (err) {
-    console.error('Generation error:', err);
-    // Return the specific error to help with debugging
-    return res.status(500).json({ error: err.message });
+    console.error('Pipeline Error:', err);
+    return res.status(500).json({ error: "Pipeline failed", detail: err.message });
   }
 };
