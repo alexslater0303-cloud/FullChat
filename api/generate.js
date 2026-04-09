@@ -1,43 +1,43 @@
 const Anthropic = require('@anthropic-ai/sdk');
-// 2026 UPDATE: Import the NEW Google GenAI SDK client
+// 2026 UPDATE: Use the NEW @google/genai library
 const { GoogleGenAI } = require('@google/genai'); 
 const { supabase } = require('../lib/supabase');
 const { PERSONAS } = require('../lib/personas');
 
-// Initialization
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-// 2026 UPDATE: New client-based initialization
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+// New initialization (will auto-read GOOGLE_API_KEY or use your provided key)
+const googleAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   const { prompt, persona, inviteCode } = req.body;
 
   try {
-    // ── STAGE 0: AUTH ──────────────────────────────────────────────────────
+    // 1. AUTH
     const { data: tester } = await supabase.from('testers').select('*').eq('invite_code', inviteCode).single();
     if (!tester) return res.status(401).json({ error: 'Invalid Code' });
 
-    // ── STAGE 1: GEMINI RESEARCH ──────────────────────────────────────────
-    // 2026 UPDATE: Using the new .models.generateContent structure
-    const research = await ai.models.generateContent({
-      model: 'gemini-2.0-flash', 
-      contents: [{ role: 'user', parts: [{ text: `Research 3 UK cars for: "${prompt}". Need prices and YouTube IDs.` }] }]
+    // 2. STAGE 1: GEMINI RESEARCH (Using 2026 Interactions API)
+    // Using gemini-3.1-flash, the current cost-efficient standard
+    const research = await googleAI.interactions.create({
+      model: 'gemini-3.1-flash',
+      input: `Find 3 cars in the UK for: "${prompt}". Research price, HP, and a YouTube ID.`,
+      tools: [{ type: 'google_search' }] // Built-in search grounding
     });
     const facts = research.text; 
 
-    // ── STAGE 2: CLAUDE WRITING ───────────────────────────────────────────
+    // 3. STAGE 2: CLAUDE WRITING (Using 2026 Stable Model)
     const p = PERSONAS[persona] || PERSONAS.default;
     const writerRes = await anthropic.messages.create({
-      model: "claude-3-7-sonnet", // Updated to the stable 2026 reasoning model
+      model: "claude-4-sonnet-20260307", // The new April 2026 production standard
       max_tokens: 3000,
-      system: `You are ${p.name}. Style: ${p.style}. Use this research: ${facts}`,
-      messages: [{ role: "user", content: `Generate JSON for: ${prompt}` }]
+      system: `You are ${p.name}. Style: ${p.style}. Research: ${facts}`,
+      messages: [{ role: "user", content: `Create JSON article for: ${prompt}` }]
     });
 
     const article = JSON.parse(writerRes.content[0].text.match(/\{[\s\S]*\}/)[0]);
 
-    // ── STAGE 3: MEDIA ────────────────────────────────────────────────────
+    // 4. STAGE 3: MEDIA (2026 safe dynamic placeholder)
     article.cars = article.cars.map(car => ({
       ...car,
       imageUrl: `https://loremflickr.com/800/600/${encodeURIComponent(car.make + ' ' + car.model)}/all`
