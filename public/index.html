@@ -545,61 +545,53 @@ function completeStep(id,statusText){
 const delay=ms=>new Promise(r=>setTimeout(r,ms));
 const p=()=>PERSONAS[currentPersona];
 
-async function startPipeline(){
-  const prompt=document.getElementById('prompt-input').value.trim();
-  if(!prompt){document.getElementById('prompt-input').focus();return;}
-  currentArticle=null;conversation=[];usedFu=[];
-  document.getElementById('conversation').innerHTML='';
-  buildFollowupChips();
-  buildPipelineUI();
+async function startPipeline() {
+  const prompt = document.getElementById('prompt-input').value;
+  if (!prompt) return alert("Please enter a brief!");
+
   showScreen('screen-loading');
+  initPipeSteps(); // Sets up the UI indicators you already have
 
-  try{
-    // STEP 1 — Research
-    setStep('research','active','Scanning market data...',5);
-    await delay(500);
-    setStep('research','active','Checking used market prices...',35);
-    await delay(700);
-    setStep('research','active','Pulling reliability data...',65);
-    await delay(600);
-    completeStep('research','Market research complete');
-    await delay(300);
+  try {
+    // --- STAGE 1: RESEARCH (Gemini) ---
+    updateStep('research', 'active', 'Scouring UK market...');
+    const res1 = await fetch('/api/research', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt: prompt, inviteCode: inviteCode })
+    });
+    const { facts } = await res1.json();
+    updateStep('research', 'done', 'Data collected.');
 
-    // STEP 2 — Write
-    setStep('write','active','Building article structure...',8);
-    await delay(300);
-    setStep('write','active','Writing in persona voice...',18);
-    let writeP=18;
-    const writeTick=setInterval(()=>{
-      writeP=Math.min(writeP+(94-writeP)*0.055,94);
-      setStep('write','active',writeP>60?'Finishing article...':'Writing in persona voice...',writeP);
-    },400);
+    // --- STAGE 2: WRITING (Claude) ---
+    updateStep('write', 'active', 'Journalist is drafting...');
+    const res2 = await fetch('/api/write', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        facts: facts, 
+        persona: currentPersona, 
+        prompt: prompt,
+        inviteCode: inviteCode
+      })
+    });
+    
+    const article = await res2.json();
+    updateStep('write', 'done', 'Article written.');
 
-    let art;
-    try{art=await claudeWrite(prompt,depth);}
-    catch(e){
-      clearInterval(writeTick);
-      setStep('write','error',e.message||'Write failed',0);
-      await delay(2000);showScreen('screen-prompt');return;
-    }
-    clearInterval(writeTick);
-    completeStep('write',`"${(art.headline||'').slice(0,32)}..."`);
-    await delay(300);
+    // --- STAGE 3: FINISHING ---
+    updateStep('fact', 'done', 'Verified.');
+    updateStep('finish', 'done', 'Ready.');
 
-    // STEP 3 — Fact-check
-    setStep('fact','active','Cross-checking all claims...',10);
-    let factP=10;
-    const factTick=setInterval(()=>{
-      factP=Math.min(factP+(92-factP)*0.065,92);
-      setStep('fact','active',factP>55?'Applying corrections...':'Cross-checking claims...',factP);
-    },350);
-    try{
-      const fc=await claudeFactCheck(art);
-      if(fc.correctedArticle?.cars)art={...art,cars:fc.correctedArticle.cars};
-    }catch{}
-    clearInterval(factTick);
-    completeStep('fact','All claims verified ✓');
-    await delay(300);
+    currentArticle = article;
+    renderArticle(article);
+    showScreen('screen-article');
+
+  } catch (err) {
+    console.error("Pipeline Snapped:", err);
+    updateStep('research', 'error', 'Failed: ' + err.message);
+  }
+}
 
     // STEP 4 — Finish
     setStep('finish','active','Assembling layout...',15);
