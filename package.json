@@ -4,7 +4,7 @@
   "description": "AI-powered motoring journalism",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.20.0",
-    "@google/genai": "^1.49.0",
+    "@google/generative-ai": "^0.22.0",
     "@supabase/supabase-js": "^2.39.0"
   }
 }
