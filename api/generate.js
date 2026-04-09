@@ -1,11 +1,11 @@
 const Anthropic = require('@anthropic-ai/sdk');
-const { GoogleGenerativeAI } = require("@google/generative-ai"); // Use the STABLE 2025 version for now
+// 2026 UPDATE: Using the NEW Google Gen AI SDK
+const { GoogleGenAI } = require('@google/genai'); 
 const { supabase } = require('../lib/supabase');
 const { PERSONAS } = require('../lib/personas');
 
-// API Clients
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const googleAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).send();
@@ -16,19 +16,21 @@ module.exports = async (req, res) => {
     const { data: tester } = await supabase.from('testers').select('*').eq('invite_code', inviteCode).single();
     if (!tester) return res.status(401).json({ error: 'Auth Failed' });
 
-    // 2. STAGE 1: GEMINI RESEARCH
-    // Using gemini-2.0-flash (The 2026 stable workhorse)
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-    const research = await model.generateContent(`UK Car Research: "${prompt}". Need 3 cars with Price, HP, and YouTube ID.`);
-    const facts = research.response.text();
+    // 2. STAGE 1: GEMINI RESEARCH (Fast 2026 SDK)
+    // We use 'flash' to ensure we stay under Vercel's 10s timeout
+    const research = await googleAI.models.generateContent({
+      model: 'gemini-2.0-flash', 
+      contents: [{ role: 'user', parts: [{ text: `Research 3 cars in UK for: "${prompt}". Need prices and YouTube IDs.` }] }]
+    });
+    const facts = research.text; 
 
-    // 3. STAGE 2: CLAUDE WRITING
+    // 3. STAGE 2: CLAUDE WRITING (Claude 4.6 Standard)
     const p = PERSONAS[persona] || PERSONAS.default;
     const msg = await anthropic.messages.create({
-      model: "claude-3-5-sonnet-latest", // Use 'latest' to avoid the 2026 model-ID sunset
-      max_tokens: 3000,
+      model: "claude-4-6-sonnet", // The new stable standard for April 2026
+      max_tokens: 2000,
       system: `You are ${p.name}. Style: ${p.style}. Facts: ${facts}`,
-      messages: [{ role: "user", content: `Write a car guide for ${prompt}. Return ONLY JSON.` }]
+      messages: [{ role: "user", content: `Generate JSON for: ${prompt}` }]
     });
 
     // 4. CLEAN JSON & IMAGE INJECTION
