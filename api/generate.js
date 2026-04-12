@@ -112,10 +112,14 @@ module.exports = async (req, res) => {
         messages: [...history.map(m=>({role:m.role,content:m.content})), {role:'user',content:prompt}]
       });
       const answer = r.content?.find(b=>b.type==='text')?.text || 'Sorry, try again.';
-      await supabase.from('testers').update({
+      
+      const { error: upError } = await supabase.from('testers').update({
         tokens_remaining: tester.tokens_remaining - cost,
         tokens_used: (tester.tokens_used||0) + cost
       }).eq('id', tester.id);
+
+      if (upError) console.error("Credit update failed:", upError.message);
+
       return res.status(200).json({ answer, tokens_remaining: tester.tokens_remaining - cost });
     } catch(err) {
       return res.status(500).json({ error: err.message });
@@ -123,7 +127,6 @@ module.exports = async (req, res) => {
   }
 
   // ── ARTICLE — STREAMING ───────────────────────────────────────────────────
-  // Set up SSE headers
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
@@ -168,14 +171,12 @@ ${schema}`
       }]
     });
 
-    // Stream tokens to client as they arrive
     stream.on('text', (chunk) => {
       fullText += chunk;
       send('token', { chunk });
     });
 
     await stream.finalMessage();
-
     send('step', { step: 'write', state: 'done', status: 'Article written ✓' });
 
     // Step 3 — Silent fact-check
@@ -222,16 +223,24 @@ Return: {"correctedArticle":{"cars":[...full corrected cars...]} or null}`
     send('article', { article, usedGemini: !!research, tokens_remaining: tester.tokens_remaining - cost });
 
     // Deduct tokens
-    await supabase.from('testers').update({
+    const { error: upError } = await supabase.from('testers').update({
       tokens_remaining: tester.tokens_remaining - cost,
       tokens_used: (tester.tokens_used||0) + cost
     }).eq('id', tester.id);
 
-    await supabase.from('generations').insert({
-      tester_id: tester.id, prompt, persona,
-      tokens_used: cost, article_headline: article.headline||null,
+    if (upError) console.warn('Credit update failed:', upError.message);
+
+    // Log the generation
+    const { error: logError } = await supabase.from('generations').insert({
+      tester_id: tester.id, 
+      prompt, 
+      persona,
+      tokens_used: cost, 
+      article_headline: article.headline||null,
       used_gemini: !!research
-    }).catch(e => console.warn('Log failed:', e.message));
+    });
+
+    if (logError) console.warn('Log failed:', logError.message);
 
     send('done', {});
     res.end();
