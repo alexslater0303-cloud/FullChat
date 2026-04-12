@@ -12,17 +12,30 @@ module.exports = async (req, res) => {
   try {
     const results = await Promise.all(
       cars.slice(0, 4).map(async ({ make, model }) => {
-        const query = encodeURIComponent(`${make} ${model} car`);
-        const r = await fetch(
-          `https://api.pexels.com/v1/search?query=${query}&per_page=4&orientation=landscape`,
+        // 1. Primary specific search: "Make Model car driving"
+        const primaryQuery = encodeURIComponent(`${make} ${model} car driving`);
+        let r = await fetch(
+          `https://api.pexels.com/v1/search?query=${primaryQuery}&per_page=4&orientation=landscape`,
           { headers: { Authorization: PEXELS_KEY } }
         );
-        const data = await r.json();
+        let data = await r.json();
+
+        // 2. Fallback search: If no photos found for specific model, search for the brand
+        if (!data.photos || data.photos.length === 0) {
+          const fallbackQuery = encodeURIComponent(`${make} car automotive`);
+          r = await fetch(
+            `https://api.pexels.com/v1/search?query=${fallbackQuery}&per_page=4&orientation=landscape`,
+            { headers: { Authorization: PEXELS_KEY } }
+          );
+          data = await r.json();
+        }
+
         const photos = (data.photos || []).map(p => ({
           url: p.src.large || p.src.medium,
           thumb: p.src.medium,
           photographer: p.photographer
         }));
+
         return { make, model, photos };
       })
     );
