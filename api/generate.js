@@ -6,11 +6,10 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const COSTS = { article: 40, followup: 10 };
 
 // ── Schema ────────────────────────────────────────────────────────────────────
-function makeSchema(depth, requestedCount = null) {
-  // Use requested count (1 for deep dive) or default based on depth
+function makeSchema(depth, requestedCount) {
   const cars = requestedCount || (depth === 0 ? 2 : depth === 1 ? 3 : 4);
-  
   const isDeepDive = cars === 1;
+  
   const copy = isDeepDive 
     ? '8-10 sentences with high technical depth, common faults, and driving dynamics' 
     : (depth === 0 ? '2 sentences' : depth === 1 ? '3 sentences' : '4-5 sentences with technical depth');
@@ -29,7 +28,7 @@ function makeSchema(depth, requestedCount = null) {
     {
       "make": "Make", "model": "Model", "badge": "${isDeepDive ? 'The Focus' : 'Top Pick'}",
       "stat1_val": "£18,500", "stat1_label": "From (used)",
-      "stat2_val": "316hp",   "stat stat2_label": "Power",
+      "stat2_val": "316hp",   "stat2_label": "Power",
       "stat3_val": "5.4s",    "stat3_label": "0-62mph",
       "copy": "${copy}",
       "quote": "Real attributed quote from a known automotive journalist",
@@ -51,13 +50,16 @@ async function geminiResearch(prompt) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: `Research this motoring brief: "${prompt}"` }] }],
+        contents: [{ parts: [{ text: `Research this motoring brief for a UK audience: "${prompt}"` }] }],
         tools: [{ googleSearch: {} }]
       })
     });
     const d = await r.json();
     return d.candidates?.[0]?.content?.parts?.[0]?.text || null;
-  } catch (e) { return null; }
+  } catch (e) { 
+    console.error('Gemini error:', e.message);
+    return null; 
+  }
 }
 
 // ── Parse JSON safely ─────────────────────────────────────────────────────────
@@ -72,8 +74,7 @@ function parseJSON(raw) {
 // ── Main handler ──────────────────────────────────────────────────────────────
 module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-
+  
   const { prompt, persona, depth=1, inviteCode, mode='article' } = req.body || {};
   if (!prompt || !persona || !inviteCode) return res.status(400).json({ error: 'Missing fields' });
 
@@ -83,15 +84,17 @@ module.exports = async (req, res) => {
 
   // Deep Dive Detection
   let requestedCount = null;
-  if (prompt.toLowerCase().includes('deep dive') || prompt.toLowerCase().includes('single car')) {
+  const lowerPrompt = prompt.toLowerCase();
+  if (lowerPrompt.includes('deep dive') || lowerPrompt.includes('single car') || lowerPrompt.includes('just one car')) {
     requestedCount = 1;
   }
 
   // Auth check
   const { data: tester, error: authError } = await supabase.from('testers').select('*').eq('invite_code', normCode).eq('active', true).single();
   if (authError || !tester) return res.status(403).json({ error: 'Invalid invite code' });
+  if (tester.tokens_remaining < cost) return res.status(402).json({ error: 'Out of tokens' });
 
-  // Stream Headers
+  // Start Stream
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
@@ -100,11 +103,11 @@ module.exports = async (req, res) => {
   const send = (event, data) => res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
 
   try {
-    send('step', { step: 'research', state: 'active' });
+    send('step', { step: 'research', state: 'active', status: 'Gathering data...' });
     const research = await geminiResearch(prompt);
-    send('step', { step: 'research', state: 'done' });
+    send('step', { step: 'research', state: 'done', status: 'Data ready ✓' });
 
-    send('step', { step: 'write', state: 'active' });
+    send('step', { step: 'write', state: 'active', status: 'Writing article...' });
 
     const { numCars, maxTokens, schema } = makeSchema(Number(depth), requestedCount);
 
@@ -114,7 +117,7 @@ module.exports = async (req, res) => {
       system: p.systemPrompt,
       messages: [{ 
         role: 'user', 
-        content: `Write about: "${prompt}". ${research ? 'Research: ' + research : ''} Include ${numCars} car(s). JSON ONLY: ${schema}` 
+        content: `Write a feature about: "${prompt}". ${research ? 'Research context: ' + research : ''} Include exactly ${numCars} car(s). Respond ONLY with valid JSON: ${schema}` 
       }]
     });
 
@@ -125,29 +128,30 @@ module.exports = async (req, res) => {
     });
 
     await stream.finalMessage();
-    send('step', { step: 'write', state: 'done' });
+    send('step', { step: 'write', state: 'done', status: 'Finished ✓' });
 
     const article = parseJSON(fullText);
     if (article) {
       send('article', { article, usedGemini: !!research });
       
-      // Database Updates
+      // Update Database
       await supabase.from('testers').update({
         tokens_remaining: tester.tokens_remaining - cost,
         tokens_used: (tester.tokens_used||0) + cost
-      }).eq('id', tester.id);
+      }).eq('id', tester.id).then(() => {});
 
       await supabase.from('generations').insert({
         tester_id: tester.id, prompt, persona,
-        tokens_used: cost, article_headline: article.headline||null
-      });
+        tokens_used: cost, article_headline: article.headline||null,
+        used_gemini: !!research
+      }).then(() => {});
     }
 
     send('done', {});
     res.end();
 
   } catch(err) {
-    console.error(err);
+    console.error('Function error:', err.message);
     res.end();
   }
 };
