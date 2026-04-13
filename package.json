@@ -4,6 +4,7 @@
   "description": "AI-powered motoring journalism",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.20.0",
-    "@supabase/supabase-js": "^2.39.0"
+    "@supabase/supabase-js": "^2.39.0",
+    "node-fetch": "^3.3.2"
   }
 }

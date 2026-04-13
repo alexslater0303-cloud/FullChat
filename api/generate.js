@@ -1,3 +1,4 @@
+const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 const Anthropic = require('@anthropic-ai/sdk');
 const { supabase } = require('../lib/supabase');
 const { PERSONAS } = require('../lib/personas');
