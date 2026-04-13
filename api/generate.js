@@ -5,12 +5,10 @@ const { PERSONAS } = require('../lib/personas');
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const COSTS = { article: 40, followup: 10 };
 
-// ── Schema ────────────────────────────────────────────────────────────────────
 function makeSchema(depth, requestedCount) {
-  // Use requested count (1 for deep dive) or default based on depth
   const cars = requestedCount || (depth === 0 ? 2 : depth === 1 ? 3 : 4);
-  
   const isDeepDive = cars === 1;
+  
   const copy = isDeepDive 
     ? '8-10 sentences with high technical depth, common faults, and driving dynamics' 
     : (depth === 0 ? '2 sentences' : depth === 1 ? '3 sentences' : '4-5 sentences with technical depth');
@@ -42,87 +40,74 @@ function makeSchema(depth, requestedCount) {
   };
 }
 
-// ── Gemini research ───────────────────────────────────────────────────────────
 async function geminiResearch(prompt) {
   const KEY = process.env.GEMINI_API_KEY;
   if (!KEY) return null;
   try {
-    const r = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: `Research this brief: "${prompt}"...` }] }],
-          tools: [{ googleSearch: {} }]
-        })
-      }
-    );
-    if (!r.ok) return null;
+    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${KEY}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: `Research this motoring brief: "${prompt}"` }] }],
+        tools: [{ googleSearch: {} }]
+      })
+    });
     const d = await r.json();
     return d.candidates?.[0]?.content?.parts?.[0]?.text || null;
   } catch { return null; }
 }
 
-// ── Parse JSON safely ─────────────────────────────────────────────────────────
 function parseJSON(raw) {
   const c = raw.replace(/```json\n?/g,'').replace(/```\n?/g,'').trim();
-  try { return JSON.parse(c); } catch {
-    const m = c.match(/\{[\s\S]*\}/);
-    if (m) { try { return JSON.parse(m[0]); } catch {} }
-  }
+  try { return JSON.parse(c); } catch {}
+  const m = c.match(/\{[\s\S]*\}/);
+  if (m) { try { return JSON.parse(m[0]); } catch {} }
   return null;
 }
 
-// ── Main handler ──────────────────────────────────────────────────────────────
 module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-
-  const body = req.body || {};
-  const { prompt, persona, depth = 1, inviteCode, mode = 'article' } = body;
-
-  if (!prompt || !persona || !inviteCode) return res.status(400).json({ error: 'Missing required fields' });
-  if (!PERSONAS[persona]) return res.status(400).json({ error: 'Invalid persona' });
+  
+  const { prompt, persona, depth=1, inviteCode, mode='article' } = req.body || {};
+  if (!prompt || !persona || !inviteCode) return res.status(400).json({ error: 'Missing fields' });
 
   const normCode = inviteCode.trim().toUpperCase();
-  const cost     = COSTS[mode] || COSTS.article;
+  const cost = COSTS[mode] || COSTS.article;
+  const p = PERSONAS[persona];
 
-  // Deep dive detection
+  // Deep Dive Detection
   let requestedCount = null;
-  if (prompt.toLowerCase().match(/deep dive|single car|just one car/)) {
+  if (prompt.toLowerCase().includes('deep dive') || prompt.toLowerCase().includes('single car')) {
     requestedCount = 1;
   }
 
-  // Validate tester
-  const { data: tester, error: tErr } = await supabase
-    .from('testers')
-    .select('*')
-    .eq('invite_code', normCode)
-    .eq('active', true)
-    .single();
+  const { data: tester } = await supabase.from('testers').select('*').eq('invite_code', normCode).eq('active', true).single();
+  if (!tester || tester.tokens_remaining < cost) return res.status(403).json({ error: 'Auth/Token issue' });
 
-  if (tErr || !tester) return res.status(403).json({ error: 'Invalid invite code' });
-  if (tester.tokens_remaining < cost) return res.status(402).json({ error: 'No tokens' });
-
-  // Article Streaming logic
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
   res.flushHeaders();
 
   const send = (event, data) => res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
 
   try {
+    send('step', { step: 'research', state: 'active' });
     const research = await geminiResearch(prompt);
     send('step', { step: 'research', state: 'done' });
+
+    send('step', { step: 'write', state: 'active' });
 
     const { numCars, maxTokens, schema } = makeSchema(Number(depth), requestedCount);
 
     const stream = anthropic.messages.stream({
       model: 'claude-3-5-sonnet-20240620',
       max_tokens: maxTokens,
-      system: PERSONAS[persona].systemPrompt,
-      messages: [{ role: 'user', content: `Write about: ${prompt}. JSON only: ${schema}` }]
+      system: p.systemPrompt,
+      messages: [{ 
+        role: 'user', 
+        content: `Write about: "${prompt}". ${research ? 'Use this research: ' + research : ''} Include ${numCars} car(s). Respond ONLY with JSON: ${schema}` 
+      }]
     });
 
     let fullText = '';
@@ -137,25 +122,22 @@ module.exports = async (req, res) => {
     if (article) {
       send('article', { article, usedGemini: !!research });
       
-      // Database Updates
+      // Save results
       await supabase.from('testers').update({
         tokens_remaining: tester.tokens_remaining - cost,
-        tokens_used: (tester.tokens_used || 0) + cost
+        tokens_used: (tester.tokens_used||0) + cost
       }).eq('id', tester.id);
 
       await supabase.from('generations').insert({
-        tester_id: tester.id,
-        prompt,
-        persona,
-        tokens_used: cost,
-        article_headline: article.headline || null
+        tester_id: tester.id, prompt, persona,
+        tokens_used: cost, article_headline: article.headline||null
       });
     }
 
     send('done', {});
     res.end();
 
-  } catch (err) {
+  } catch(err) {
     console.error(err);
     res.end();
   }
