@@ -54,14 +54,17 @@ async function geminiResearch(prompt) {
     });
     const d = await r.json();
     return d.candidates?.[0]?.content?.parts?.[0]?.text || null;
-  } catch { return null; }
+  } catch (e) { 
+    console.error('Gemini error:', e.message);
+    return null; 
+  }
 }
 
 function parseJSON(raw) {
   const c = raw.replace(/```json\n?/g,'').replace(/```\n?/g,'').trim();
-  try { return JSON.parse(c); } catch {}
+  try { return JSON.parse(c); } catch (e) {}
   const m = c.match(/\{[\s\S]*\}/);
-  if (m) { try { return JSON.parse(m[0]); } catch {} }
+  if (m) { try { return JSON.parse(m[0]); } catch (e) {} }
   return null;
 }
 
@@ -77,13 +80,17 @@ module.exports = async (req, res) => {
 
   // Deep Dive Detection
   let requestedCount = null;
-  if (prompt.toLowerCase().includes('deep dive') || prompt.toLowerCase().includes('single car')) {
+  const lowerPrompt = prompt.toLowerCase();
+  if (lowerPrompt.includes('deep dive') || lowerPrompt.includes('single car') || lowerPrompt.includes('just one car')) {
     requestedCount = 1;
   }
 
-  const { data: tester } = await supabase.from('testers').select('*').eq('invite_code', normCode).eq('active', true).single();
-  if (!tester || tester.tokens_remaining < cost) return res.status(403).json({ error: 'Auth/Token issue' });
+  // Auth check
+  const { data: tester, error: authError } = await supabase.from('testers').select('*').eq('invite_code', normCode).eq('active', true).single();
+  if (authError || !tester) return res.status(403).json({ error: 'Invalid invite code' });
+  if (tester.tokens_remaining < cost) return res.status(402).json({ error: 'Out of tokens' });
 
+  // Start Stream
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
@@ -92,11 +99,11 @@ module.exports = async (req, res) => {
   const send = (event, data) => res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
 
   try {
-    send('step', { step: 'research', state: 'active' });
+    send('step', { step: 'research', state: 'active', status: 'Gathering data...' });
     const research = await geminiResearch(prompt);
-    send('step', { step: 'research', state: 'done' });
+    send('step', { step: 'research', state: 'done', status: 'Data ready ✓' });
 
-    send('step', { step: 'write', state: 'active' });
+    send('step', { step: 'write', state: 'active', status: 'Writing article...' });
 
     const { numCars, maxTokens, schema } = makeSchema(Number(depth), requestedCount);
 
@@ -106,7 +113,7 @@ module.exports = async (req, res) => {
       system: p.systemPrompt,
       messages: [{ 
         role: 'user', 
-        content: `Write about: "${prompt}". ${research ? 'Use this research: ' + research : ''} Include ${numCars} car(s). Respond ONLY with JSON: ${schema}` 
+        content: `Write a feature about: "${prompt}". ${research ? 'Research: ' + research : ''} Include ${numCars} car(s). JSON ONLY: ${schema}` 
       }]
     });
 
@@ -116,13 +123,14 @@ module.exports = async (req, res) => {
       send('token', { chunk });
     });
 
-    await stream.finalMessage();
-    const article = parseJSON(fullText);
+    const finalMsg = await stream.finalMessage();
+    send('step', { step: 'write', state: 'done', status: 'Finished ✓' });
 
+    const article = parseJSON(fullText);
     if (article) {
-      send('article', { article, usedGemini: !!research });
+      send('article', { article, usedGemini: !!research, tokens_remaining: tester.tokens_remaining - cost });
       
-      // Save results
+      // Update Database
       await supabase.from('testers').update({
         tokens_remaining: tester.tokens_remaining - cost,
         tokens_used: (tester.tokens_used||0) + cost
@@ -130,7 +138,8 @@ module.exports = async (req, res) => {
 
       await supabase.from('generations').insert({
         tester_id: tester.id, prompt, persona,
-        tokens_used: cost, article_headline: article.headline||null
+        tokens_used: cost, article_headline: article.headline||null,
+        used_gemini: !!research
       });
     }
 
@@ -138,7 +147,8 @@ module.exports = async (req, res) => {
     res.end();
 
   } catch(err) {
-    console.error(err);
+    console.error('Function error:', err.message);
+    send('error', { message: 'Stream failed' });
     res.end();
   }
 };
