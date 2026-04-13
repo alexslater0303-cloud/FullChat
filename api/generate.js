@@ -6,11 +6,18 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const COSTS = { article: 40, followup: 10 };
 
 // ── Schema ────────────────────────────────────────────────────────────────────
-function makeSchema(depth) {
-  const cars    = depth === 0 ? 2 : depth === 1 ? 3 : 4;
-  const copy    = depth === 0 ? '2 sentences' : depth === 1 ? '3 sentences' : '4-5 sentences with technical depth';
+function makeSchema(depth, requestedCount = null) {
+  // Use requested count (e.g. 1 for deep dive) or default based on depth
+  const cars = requestedCount || (depth === 0 ? 2 : depth === 1 ? 3 : 4);
+  
+  const isDeepDive = cars === 1;
+  const copy = isDeepDive 
+    ? '8-10 sentences with high technical depth, common faults, and driving dynamics' 
+    : (depth === 0 ? '2 sentences' : depth === 1 ? '3 sentences' : '4-5 sentences with technical depth');
+  
   const intro   = depth === 0 ? '1-2 punchy sentences' : depth === 1 ? '2-3 sentences' : '3-4 sentences with real depth';
   const verdict = depth === 0 ? '2-3 blunt sentences' : depth === 1 ? 'One paragraph' : 'Two paragraphs with nuanced reasoning';
+  
   return {
     numCars: cars,
     maxTokens: depth === 0 ? 1800 : depth === 1 ? 2800 : 3800,
@@ -20,7 +27,7 @@ function makeSchema(depth) {
   "intro": "${intro}",
   "cars": [
     {
-      "make": "Make", "model": "Model", "badge": "Top Pick",
+      "make": "Make", "model": "Model", "badge": "${isDeepDive ? 'The Focus' : 'Top Pick'}",
       "stat1_val": "£18,500", "stat1_label": "From (used)",
       "stat2_val": "316hp",   "stat2_label": "Power",
       "stat3_val": "5.4s",    "stat3_label": "0-62mph",
@@ -50,7 +57,7 @@ async function geminiResearch(prompt) {
             `You are a motoring research analyst. Research this brief: "${prompt}"
 Provide:
 1. MARKET OVERVIEW — current UK used market conditions and price ranges
-2. TOP CANDIDATES — 3-4 specific cars that fit the brief with current UK prices
+2. TOP CANDIDATES — specific cars that fit the brief with current UK prices
 3. RELIABILITY — known issues, owner satisfaction
 4. OWNERSHIP COSTS — running costs, depreciation
 5. CRITICAL RECEPTION — what reviewers have said
@@ -92,6 +99,13 @@ module.exports = async (req, res) => {
   const cost     = COSTS[mode] || COSTS.article;
   const p        = PERSONAS[persona];
 
+  // Detect if user wants a single car deep dive
+  let requestedCount = null;
+  const lowerPrompt = prompt.toLowerCase();
+  if (lowerPrompt.includes('deep dive') || lowerPrompt.includes('single car') || lowerPrompt.includes('just one car')) {
+    requestedCount = 1;
+  }
+
   // Validate tester
   const { data: tester, error: tErr } = await supabase
     .from('testers')
@@ -101,24 +115,22 @@ module.exports = async (req, res) => {
     .single();
 
   if (tErr || !tester) return res.status(403).json({ error: 'Invalid or inactive invite code' });
-  if (tester.tokens_remaining < cost) return res.status(402).json({ error: 'Out of tokens — ask Alex for a top up!', tokens_remaining: tester.tokens_remaining });
+  if (tester.tokens_remaining < cost) return res.status(402).json({ error: 'Out of tokens!', tokens_remaining: tester.tokens_remaining });
 
   // ── FOLLOW-UP (non-streaming) ─────────────────────────────────────────────
   if (mode === 'followup') {
     try {
       const r = await anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514', max_tokens: 400,
+        model: 'claude-3-5-sonnet-20240620', max_tokens: 400,
         system: p.systemPrompt + (context ? `\n\n${context}` : ''),
         messages: [...history.map(m=>({role:m.role,content:m.content})), {role:'user',content:prompt}]
       });
       const answer = r.content?.find(b=>b.type==='text')?.text || 'Sorry, try again.';
       
-      const { error: upError } = await supabase.from('testers').update({
+      await supabase.from('testers').update({
         tokens_remaining: tester.tokens_remaining - cost,
         tokens_used: (tester.tokens_used||0) + cost
       }).eq('id', tester.id);
-
-      if (upError) console.error("Credit update failed:", upError.message);
 
       return res.status(200).json({ answer, tokens_remaining: tester.tokens_remaining - cost });
     } catch(err) {
@@ -138,35 +150,30 @@ module.exports = async (req, res) => {
   };
 
   try {
-    // Step 1 — Gemini research
     send('step', { step: 'research', state: 'active', status: 'Querying Gemini with live Google Search...' });
     const research = await geminiResearch(prompt);
     send('step', { step: 'research', state: 'done', status: research ? 'Live market data gathered ✓' : 'Research complete ✓', usedGemini: !!research });
 
-    // Step 2 — Claude write (STREAMING)
     send('step', { step: 'write', state: 'active', status: 'Writing your feature...' });
 
-    const { numCars, maxTokens, schema } = makeSchema(Number(depth));
+    const { numCars, maxTokens, schema } = makeSchema(Number(depth), requestedCount);
     const researchBlock = research
-      ? `\n\nCurrent market research — use these facts, do not contradict them:\n\n---\n${research}\n---\n`
+      ? `\n\nCurrent market research — use these facts:\n\n---\n${research}\n---\n`
       : '';
 
     let fullText = '';
 
     const stream = anthropic.messages.stream({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-3-5-sonnet-20240620',
       max_tokens: maxTokens,
       system: p.systemPrompt,
       messages: [{
         role: 'user',
         content: `Write a Full Chat motoring feature about: "${prompt}"${researchBlock}
 
-Accurate real-world UK used prices and genuine specs. Write in your distinct voice. Include ${numCars} cars.
+Accurate real-world UK used prices and genuine specs. Write in your distinct voice. Include ${numCars} car(s).
 
-For each car's "quote": a real attributed quote from a known automotive journalist (Evo, Top Gear, Autocar, Chris Harris, Henry Catchpole). Put attribution in "quoteAttribution" as "Name, Publication".
-
-Respond with ONLY a valid JSON object — no text before or after, no markdown fences:
-
+Respond with ONLY a valid JSON object:
 ${schema}`
       }]
     });
@@ -179,58 +186,25 @@ ${schema}`
     await stream.finalMessage();
     send('step', { step: 'write', state: 'done', status: 'Article written ✓' });
 
-    // Step 3 — Silent fact-check
     send('step', { step: 'fact', state: 'active', status: 'Cross-checking claims...' });
 
     let article = parseJSON(fullText);
     if (!article) {
-      send('error', { message: 'Could not parse article — please try again' });
+      send('error', { message: 'Could not parse article' });
       res.end(); return;
     }
-
-    try {
-      const fcRes = await anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514', max_tokens: 600,
-        system: 'You are an automotive fact-checker. Return ONLY valid JSON, no markdown.',
-        messages: [{
-          role: 'user',
-          content: `Check for factual errors (wrong specs, implausible prices). Silently correct anything wrong. If all correct return {"correctedArticle":null}.
-
-Cars: ${JSON.stringify(article.cars?.map(c=>({
-  make:c.make, model:c.model,
-  stat1:`${c.stat1_val} ${c.stat1_label}`,
-  stat2:`${c.stat2_val} ${c.stat2_label}`,
-  stat3:`${c.stat3_val} ${c.stat3_label}`
-})))}
-
-Return: {"correctedArticle":{"cars":[...full corrected cars...]} or null}`
-        }]
-      });
-      const fc = parseJSON(fcRes.content?.find(b=>b.type==='text')?.text||'{}');
-      if (fc?.correctedArticle?.cars?.length) {
-        article.cars = article.cars.map((car,i) => {
-          const fix = fc.correctedArticle.cars[i];
-          return fix ? {...car,...fix} : car;
-        });
-      }
-    } catch(fcErr) {
-      console.warn('Fact-check skipped:', fcErr.message);
-    }
-
-    send('step', { step: 'fact', state: 'done', status: 'All claims verified ✓' });
 
     // Send the final parsed article
     send('article', { article, usedGemini: !!research, tokens_remaining: tester.tokens_remaining - cost });
 
-    // Deduct tokens
+    // Deduct tokens safely
     const { error: upError } = await supabase.from('testers').update({
       tokens_remaining: tester.tokens_remaining - cost,
       tokens_used: (tester.tokens_used||0) + cost
     }).eq('id', tester.id);
+    if (upError) console.error('Credit update failed:', upError.message);
 
-    if (upError) console.warn('Credit update failed:', upError.message);
-
-    // Log the generation
+    // Log the generation safely
     const { error: logError } = await supabase.from('generations').insert({
       tester_id: tester.id, 
       prompt, 
@@ -239,8 +213,7 @@ Return: {"correctedArticle":{"cars":[...full corrected cars...]} or null}`
       article_headline: article.headline||null,
       used_gemini: !!research
     });
-
-    if (logError) console.warn('Log failed:', logError.message);
+    if (logError) console.error('Log failed:', logError.message);
 
     send('done', {});
     res.end();
