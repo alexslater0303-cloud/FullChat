@@ -334,6 +334,7 @@ CRITICAL — YEAR & GENERATION SPECIFICITY:
 - yearTo should be the current year (2026) if the car is still in production
 - The generation field must be specific (chassis code, Mk number, facelift designation) — not just "current"
 - All specs, prices and owner commentary in the article must match the specific generation identified
+- For NEW PRICE stat: if the car is discontinued (yearTo < 2025), label it "Launch price" or "Was new from" — never "New price" for a car no longer on sale. If the car is still on sale, use "New price"
 
 For quote fields: real attributed quotes from known automotive journalists (Evo, Top Gear, Autocar, Chris Harris, Henry Catchpole). Put attribution in "quoteAttribution".
 

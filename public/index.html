@@ -142,6 +142,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 .gdots{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);display:flex;gap:5px;z-index:2;}
 .gdot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,0.4);cursor:pointer;transition:background 0.2s;}
 .gallery-credit{font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#AAA;text-align:right;margin-top:2px;}
+.car-gen{display:inline-block;margin-top:5px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;letter-spacing:2px;text-transform:uppercase;background:rgba(255,255,255,0.12);color:#ddd;padding:3px 8px;border-radius:2px;}
 
 .car-body{padding:4px 18px 18px;}
 .car-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px;}
@@ -868,6 +869,13 @@ function renderArticle(a, intent) {
   for(let i=0;i<numCars;i++) renderGallery(i);
 }
 
+function genLabel(car) {
+  const yf = car.yearFrom, yt = car.yearTo, gen = car.generation;
+  const yearStr = yf ? (yt && yt !== yf ? `${yf}–${yt}` : `${yf}–present`) : (car.year || '');
+  const parts = [yearStr, gen].filter(Boolean);
+  return parts.length ? `<div class="car-gen">${esc(parts.join(' · '))}</div>` : '';
+}
+
 function renderSingleCar(a,c){
   const car=a.car;
   const badge=BADGE[car.badge]||BADGE['Solid Value'];
@@ -882,13 +890,13 @@ function renderSingleCar(a,c){
         <div style="flex:1;padding-right:12px">
           <div class="car-make">${esc(car.make)}</div>
           <div class="car-model">${esc(car.model)}</div>
-          ${car.year?`<div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:2px;color:#666;margin-top:2px">${esc(car.year)}</div>`:''}
+          ${genLabel(car)}
         </div>
         <div class="car-badge-pill" style="background:${badge.bg};color:${badge.c}">${esc(car.badge)}</div>
       </div>
       <div class="gallery-wrap">
         <div class="gallery-box" id="gbox-0"><div class="gallery-loading" id="gload-0">Loading photos...</div></div>
-        <div class="gallery-credit">Photos via Pexels</div>
+        <div class="gallery-credit" id="gcredit-0">Photos via Pexels</div>
       </div>
       ${ytVideos[0]?renderYouTube(0):''}
       <div class="car-body">
@@ -951,12 +959,13 @@ function renderComparison(a,c){
           <div class="car-namewrap">
             <div class="car-make">${esc(car.make)}</div>
             <div class="car-model">${esc(car.model)}</div>
+            ${genLabel(car)}
           </div>
           <div class="car-badge-pill" style="background:${badge.bg};color:${badge.c}">${esc(car.badge)}</div>
         </div>
         <div class="gallery-wrap">
           <div class="gallery-box" id="gbox-${i}"><div class="gallery-loading" id="gload-${i}">Loading photos...</div></div>
-          <div class="gallery-credit">Photos via Pexels</div>
+          <div class="gallery-credit" id="gcredit-${i}">Photos via Pexels</div>
         </div>
         ${ytVideos[i]?renderYouTube(i):''}
         <div class="car-body">
@@ -1042,6 +1051,12 @@ function renderGallery(i){
   const c=C();
   box.innerHTML=g.photos.map((ph,si)=>`<img class="gallery-img${si===0?' active':''}" src="${ph.url}" alt="Car photo" onerror="this.style.display='none'" id="gimg-${i}-${si}"/>`).join('')
     +(g.photos.length>1?`<button class="gbtn gbtn-p" onclick="galNav(${i},-1)">‹</button><button class="gbtn gbtn-n" onclick="galNav(${i},1)">›</button><div class="gdots" id="gdots-${i}">${g.photos.map((_,si)=>`<div class="gdot" style="${si===0?`background:${c}`:''}" onclick="galJump(${i},${si})"></div>`).join('')}</div>`:'');
+  // Update credit based on first photo source
+  const credit=document.getElementById(`gcredit-${i}`);
+  if(credit){
+    const src=g.photos[0]?.photographer||'';
+    credit.textContent=src==='Wikimedia Commons'?'Photos via Wikimedia Commons':'Photos via Pexels';
+  }
 }
 function galNav(i,dir){const g=galleries[i];if(!g)return;g.current=(g.current+dir+g.photos.length)%g.photos.length;galUpdate(i);}
 function galJump(i,idx){if(!galleries[i])return;galleries[i].current=idx;galUpdate(i);}
