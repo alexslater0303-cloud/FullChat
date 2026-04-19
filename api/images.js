@@ -30,8 +30,9 @@ module.exports = async (req, res) => {
       });
       const r = await fetch(`https://www.googleapis.com/customsearch/v1?${params}`);
       const d = await r.json();
+      console.log('Google CSE response:', JSON.stringify({ query, error: d.error, itemCount: d.items?.length, cx: GOOGLE_CX?.slice(0,8) }));
       if (d.error) {
-        console.error('Google CSE error:', d.error.message);
+        console.error('Google CSE error:', d.error.code, d.error.message);
         return [];
       }
       return (d.items || []).map(item => ({
@@ -73,10 +74,9 @@ module.exports = async (req, res) => {
   try {
     const results = await Promise.all(
       cars.slice(0, 4).map(async ({ make, model, year, bodyStyle, yearFrom, yearTo, generation }) => {
-        // Use Google if configured, fall back to Pexels
-        const photos = GOOGLE_KEY && GOOGLE_CX
+            const photos = (GOOGLE_KEY && GOOGLE_CX)
           ? await searchGoogle(make, model, yearFrom, generation, 4)
-          : await searchPexels(make, model, yearFrom || year, bodyStyle);
+          : [];
 
         return { make, model, photos };
       })

@@ -430,8 +430,7 @@ Return: {"correctedCars":[...full corrected cars...] or null}`
     const { error: logErr } = await supabase.from('generations').insert({
       tester_id: tester.id, prompt, persona,
       tokens_used: cost,
-      article_headline: article.headline || null,
-      used_gemini: !!research
+      article_headline: article.headline || null
     });
     if (logErr) console.warn('Log failed:', logErr.message);
 
