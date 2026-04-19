@@ -36,13 +36,8 @@ function buildMarketplaceUrls(make, model, isNew = false, searchMake, searchMode
   if (yearFrom) atUrl += `&year-from=${yearFrom}`;
   if (yearTo)   atUrl += `&year-to=${yearTo}`;
 
-  // Build eBay search — include year in keyword for better filtering
-  const yearStr = yearFrom ? (yearTo && yearTo !== yearFrom ? `${yearFrom}-${yearTo}` : `${yearFrom}`) : '';
-  const ebayQuery = [sm, smo, yearStr].filter(Boolean).join('+');
-
   const urls = {
     autotrader: atUrl,
-    ebay:       `https://www.ebay.co.uk/sch/i.html?_nkw=${ebayQuery}&_sacat=9801`,
     carwow:     `https://www.carwow.co.uk/${makeSlug}/${modelSlug}`,
   };
   if (isNew) {
@@ -100,7 +95,7 @@ function singleCarSchema(depth) {
 }
 
 function comparisonSchema(depth) {
-  const cars = depth === 0 ? 2 : depth === 1 ? 3 : 4;
+  const cars = depth === 0 ? 3 : depth === 1 ? 4 : 5;
   const copy = depth === 0 ? '2 sentences' : depth === 1 ? '3 sentences' : '4-5 sentences with technical depth';
   const intro = depth === 0 ? '1-2 punchy sentences' : depth === 1 ? '2-3 sentences' : '3-4 sentences with real depth';
   const verdict = depth === 0 ? '2-3 blunt sentences' : depth === 1 ? 'One paragraph' : 'Two paragraphs';
