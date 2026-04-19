@@ -75,7 +75,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 /* GENERATING */
 #s-generating{background:#F5F0E8;position:relative;min-height:100vh;}
 .gen-article-bg{width:100%;min-height:100vh;}
-.gen-overlay{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;background:rgba(10,10,10,0.88);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);transition:opacity 0.9s ease;}
+.gen-stream-bg{position:fixed;inset:0;z-index:98;overflow:hidden;padding:48px 36px;pointer-events:none;}
+.gen-stream-bg-text{font-family:'Barlow',sans-serif;font-size:clamp(12px,1.4vw,15px);line-height:1.9;color:rgba(26,26,26,0.55);white-space:pre-wrap;word-break:break-word;}
+.gen-overlay{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;background:rgba(245,240,232,0.35);backdrop-filter:blur(18px) saturate(120%);-webkit-backdrop-filter:blur(18px) saturate(120%);transition:opacity 0.9s ease;}
 .gen-overlay.revealing{opacity:0;pointer-events:none;}
 .gen-overlay-inner{flex:1;display:flex;align-items:center;justify-content:center;}
 .gen-content{display:flex;flex-direction:column;align-items:center;gap:clamp(12px,2vh,24px);padding:36px 24px;width:100%;max-width:min(90vw,600px);}
@@ -92,8 +94,6 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 .rev-dot.active{background:var(--ac,#C8102E);transform:scale(1.3);}
 .rev-dot.done{background:#4A7A4A;}
 
-.stream-preview{position:fixed;bottom:0;left:0;right:0;z-index:99;padding:16px 24px 24px;background:linear-gradient(to top,rgba(10,10,10,0.92) 0%,transparent 100%);pointer-events:none;}
-.stream-preview-text{font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:1px;color:rgba(255,255,255,0.22);line-height:1.5;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;}
 
 /* ARTICLE */
 #s-article{background:#F5F0E8;}
@@ -358,6 +358,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 <!-- GENERATING -->
 <div id="s-generating" class="screen">
   <div class="gen-article-bg" id="gen-article-bg"></div>
+  <div class="gen-stream-bg" id="gen-stream-bg"><div class="gen-stream-bg-text" id="stream-preview"></div></div>
   <div class="gen-overlay" id="gen-overlay">
     <div class="gen-overlay-inner">
       <div class="gen-content">
@@ -370,7 +371,6 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
         </div>
       </div>
     </div>
-    <div class="stream-preview"><div class="stream-preview-text" id="stream-preview"></div></div>
   </div>
 </div>
 
