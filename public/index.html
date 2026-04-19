@@ -146,6 +146,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 .car-body{padding:4px 18px 18px;}
 .car-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px;}
 .car-stats-6{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;}
+.car-stats-9{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;}
 .stat-item{text-align:center;}
 .stat-val{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:20px;line-height:1;color:#1A1A1A;display:block;}
 .stat-lbl{font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#888;display:block;margin-top:2px;}
@@ -859,8 +860,8 @@ function renderSingleCar(a,c){
       </div>
       ${ytVideos[0]?renderYouTube(0):''}
       <div class="car-body">
-        <div class="car-stats-6">
-          ${[1,2,3,4,5,6].map(n=>car[`stat${n}_val`]?`<div class="stat-item"><span class="stat-val">${esc(car[`stat${n}_val`])}</span><span class="stat-lbl">${esc(car[`stat${n}_label`]||'')}</span></div>`:'').join('')}
+        <div class="car-stats-9">
+          ${[1,2,3,4,5,6,7,8,9].map(n=>car[`stat${n}_val`]?`<div class="stat-item"><span class="stat-val">${esc(car[`stat${n}_val`])}</span><span class="stat-lbl">${esc(car[`stat${n}_label`]||'')}</span></div>`:'').join('')}
         </div>
         <div class="car-div"></div>
         <div class="full-review">${reviewParas}</div>
@@ -927,8 +928,8 @@ function renderComparison(a,c){
         </div>
         ${ytVideos[i]?renderYouTube(i):''}
         <div class="car-body">
-          <div class="car-stats">
-            ${[1,2,3].map(n=>`<div class="stat-item"><span class="stat-val">${esc(car[`stat${n}_val`]||'—')}</span><span class="stat-lbl">${esc(car[`stat${n}_label`]||'')}</span></div>`).join('')}
+          <div class="car-stats-9">
+            ${[1,2,3,4,5,6,7,8,9].map(n=>car[`stat${n}_val`]?`<div class="stat-item"><span class="stat-val">${esc(car[`stat${n}_val`])}</span><span class="stat-lbl">${esc(car[`stat${n}_label`]||'')}</span></div>`:'').join('')}
           </div>
           <div class="car-div"></div>
           <div class="car-copy">${esc(car.copy)}</div>

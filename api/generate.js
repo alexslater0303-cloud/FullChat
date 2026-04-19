@@ -28,10 +28,12 @@ Reply "comparison" if it's asking for a list, best of, recommendations, or compa
 function buildMarketplaceUrls(make, model, isNew = false) {
   const m = encodeURIComponent(make);
   const mo = encodeURIComponent(model);
+  const makeSlug  = make.toLowerCase().replace(/\s+/g, '-');
+  const modelSlug = model.toLowerCase().replace(/\s+/g, '-');
   const urls = {
     autotrader: `https://www.autotrader.co.uk/car-search?make=${m}&model=${mo}`,
-    cargurus:   `https://www.cargurus.co.uk/Cars/new/nl_Cars_d?zip=&trim=&model=${mo}&make=${m}`,
-    carwow:     `https://www.carwow.co.uk/search?q=${m}+${mo}`,
+    cargurus:   `https://www.cargurus.co.uk/Cars/new/nl_Cars_d?zip=&keyword=${m}+${mo}`,
+    carwow:     `https://www.carwow.co.uk/used-cars/${makeSlug}/${modelSlug}`,
   };
   if (isNew) {
     // Try to construct a manufacturer URL
@@ -58,6 +60,9 @@ function singleCarSchema(depth) {
     "stat4_val": "£28,000", "stat4_label": "New price",
     "stat5_val": "52mpg",   "stat5_label": "Economy",
     "stat6_val": "1,197cc", "stat6_label": "Engine",
+    "stat7_val": "258lb-ft","stat7_label": "Torque",
+    "stat8_val": "155mph",  "stat8_label": "Top speed",
+    "stat9_val": "142g/km", "stat9_label": "CO2",
     "fullReview": "${depth===0?'4-5 paragraphs':depth===1?'6-8 paragraphs':'8-10 paragraphs — maximum depth, technical detail, real ownership experience'}",
     "quote": "Real attributed quote from a known automotive journalist",
     "quoteAttribution": "Journalist Name, Publication",
@@ -100,6 +105,12 @@ function comparisonSchema(depth) {
       "stat1_val": "£18,500", "stat1_label": "From (used)",
       "stat2_val": "316hp",   "stat2_label": "Power",
       "stat3_val": "5.4s",    "stat3_label": "0-62mph",
+      "stat4_val": "£28,000", "stat4_label": "New price",
+      "stat5_val": "52mpg",   "stat5_label": "Economy",
+      "stat6_val": "1,197cc", "stat6_label": "Engine",
+      "stat7_val": "258lb-ft","stat7_label": "Torque",
+      "stat8_val": "155mph",  "stat8_label": "Top speed",
+      "stat9_val": "142g/km", "stat9_label": "CO2",
       "copy": "${copy}",
       "quote": "Real attributed quote from a known automotive journalist",
       "quoteAttribution": "Journalist Name, Publication"
@@ -349,7 +360,13 @@ Cars: ${JSON.stringify(carsToCheck.map(c=>({
   make:c.make, model:c.model,
   stat1:`${c.stat1_val} ${c.stat1_label}`,
   stat2:`${c.stat2_val} ${c.stat2_label}`,
-  stat3:`${c.stat3_val} ${c.stat3_label}`
+  stat3:`${c.stat3_val} ${c.stat3_label}`,
+  stat4:`${c.stat4_val} ${c.stat4_label}`,
+  stat5:`${c.stat5_val} ${c.stat5_label}`,
+  stat6:`${c.stat6_val} ${c.stat6_label}`,
+  stat7:`${c.stat7_val} ${c.stat7_label}`,
+  stat8:`${c.stat8_val} ${c.stat8_label}`,
+  stat9:`${c.stat9_val} ${c.stat9_label}`
 })))}
 
 Return: {"correctedCars":[...full corrected cars...] or null}`
