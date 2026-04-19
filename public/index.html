@@ -44,13 +44,12 @@ body{font-family:'Barlow',sans-serif;background:#F5F0E8;color:#1A1A1A;min-height
 .parr{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:20px;margin-left:auto;flex-shrink:0;transition:transform 0.15s ease;}
 
 /* PROMPT */
-#s-prompt{background:#F5F0E8;height:100dvh;overflow:hidden;}
-.phdr{display:flex;align-items:center;justify-content:space-between;padding:20px 24px 16px;border-bottom:2px solid #1A1A1A;flex-shrink:0;}
+#s-prompt{background:#F5F0E8;}
+.phdr{display:flex;align-items:center;justify-content:space-between;padding:20px 24px 16px;border-bottom:2px solid #1A1A1A;}
 .plogo{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:28px;letter-spacing:-1px;color:#1A1A1A;}
 .pbadge{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:11px;letter-spacing:3px;text-transform:uppercase;padding:6px 12px;border-radius:2px;cursor:pointer;color:#F5F0E8;transition:opacity 0.2s;}
 .pbadge:hover{opacity:0.8;}
-.pbody{flex:1;padding:28px 24px 12px;display:flex;flex-direction:column;overflow-y:auto;}
-.gobtn-wrap{flex-shrink:0;padding:12px 24px 24px;background:#F5F0E8;border-top:1px solid rgba(0,0,0,0.07);}
+.pbody{flex:1;padding:28px 24px;display:flex;flex-direction:column;}
 .peyebrow{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:11px;letter-spacing:5px;text-transform:uppercase;color:#888;margin-bottom:10px;}
 .phead{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:clamp(30px,8vw,44px);line-height:0.95;text-transform:uppercase;color:#1A1A1A;margin-bottom:22px;}
 .pta{width:100%;background:#1A1A1A;color:#F5F0E8;border:none;border-radius:4px;padding:16px 18px;font-family:'Barlow',sans-serif;font-size:15px;line-height:1.5;min-height:100px;resize:none;outline:none;margin-bottom:18px;}
@@ -104,7 +103,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 
 /* Hero with CSS art backgrounds */
 .hero{position:relative;min-height:340px;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;}
-.hero-art{position:absolute;inset:0;background-size:cover;background-position:center;transition:opacity 0.6s ease;}
+.hero-art{position:absolute;inset:0;background-size:cover;background-position:center top;transition:opacity 0.6s ease;image-rendering:auto;}
 .hero-art.loading{opacity:0.6;}
 .hero-ov{position:absolute;inset:0;}
 .hero-fc{position:absolute;top:-8px;right:-8px;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:170px;color:rgba(255,255,255,0.04);line-height:1;user-select:none;pointer-events:none;}
@@ -321,7 +320,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
     <div class="peyebrow" id="p-greeting">What do you want to know?</div>
     <div class="phead">GIVE ME<br>YOUR <em id="p-em">BRIEF</em></div>
     <textarea class="pta" id="p-input" placeholder="e.g. best sub £20k AWD EVs, or: deep dive on the Honda Civic Type R..."></textarea>
-    <div class="depth-panel">
+    <button class="gobtn" id="gobtn" onclick="startPipeline()"><span>GENERATE FEATURE</span><span>→</span></button>
+    <div class="pipe-lbl" id="pipe-lbl">4-step pipeline · Full Feature mode</div>
+    <div class="depth-panel" style="margin-top:18px;">
       <div class="depth-row"><div class="depth-ttl">Depth</div><div class="depth-val" id="d-val">Full Feature</div></div>
       <input type="range" id="d-slider" min="0" max="2" step="1" value="1" oninput="setDepth(+this.value)"/>
       <div class="depth-lbls">
@@ -331,12 +332,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
       </div>
       <div class="depth-desc" id="d-desc">The full article experience</div>
     </div>
-    <div class="slbl">Quick fire</div>
+    <div class="slbl" style="margin-top:18px;">Quick fire</div>
     <div class="chips" id="chips"></div>
-  </div>
-  <div class="gobtn-wrap">
-    <button class="gobtn" id="gobtn" onclick="startPipeline()"><span>GENERATE FEATURE</span><span>→</span></button>
-    <div class="pipe-lbl" id="pipe-lbl">4-step pipeline · Full Feature mode</div>
   </div>
 </div>
 
@@ -452,11 +449,13 @@ function buildHeroImageUrl(a, intent, personaKey) {
     const { make, model, yearFrom, generation } = a.car;
     carDesc = [yearFrom, make, model, generation && generation.length < 20 ? generation : ''].filter(Boolean).join(' ');
   } else if (a.cars && a.cars.length) {
-    const c = a.cars[0];
-    carDesc = [c.yearFrom, c.make, c.model].filter(Boolean).join(' ');
+    // For comparison articles, name all cars in the lineup
+    carDesc = a.cars
+      .map(c => [c.yearFrom, c.make, c.model].filter(Boolean).join(' '))
+      .join(', ');
   }
   const prompt = `${carDesc}, ${style}`;
-  return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1400&height=560&nologo=true`;
+  return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1920&height=768&nologo=true&model=flux`;
 }
 
 const BADGE = {'Top Pick':{bg:'#C8102E',c:'#fff'},'Dark Horse':{bg:'#FFD700',c:'#1A1A1A'},'Solid Value':{bg:'#1B5E3B',c:'#fff'},'Avoid':{bg:'#555',c:'#fff'}};
