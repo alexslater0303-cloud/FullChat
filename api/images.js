@@ -30,7 +30,7 @@ module.exports = async (req, res) => {
       });
       const r = await fetch(`https://www.googleapis.com/customsearch/v1?${params}`);
       const d = await r.json();
-      console.log('Google CSE response:', JSON.stringify({ query, error: d.error, itemCount: d.items?.length, cx: GOOGLE_CX?.slice(0,8) }));
+      console.log('Google CSE response:', JSON.stringify({ query, error: d.error, itemCount: d.items?.length, cx: GOOGLE_CX?.slice(0,8), key: GOOGLE_KEY?.slice(0,10) }));
       if (d.error) {
         console.error('Google CSE error:', d.error.code, d.error.message);
         return [];
