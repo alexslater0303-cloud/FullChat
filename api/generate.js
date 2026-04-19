@@ -303,8 +303,12 @@ module.exports = async (req, res) => {
       systemNote = `Write a long-form deep dive review about: "${prompt}". This is a single car feature — go deep, be thorough, include real ownership experience, not a comparison list.`;
     } else {
       const cs = comparisonSchema(Number(depth));
+      // Allow prompt to override car count e.g. "top 10 budget hatchbacks"
+      const promptNumMatch = prompt.match(/\b(?:top\s+)?(\d+)\b/i);
+      const promptNum = promptNumMatch ? parseInt(promptNumMatch[1]) : null;
+      const numCars = (promptNum && promptNum >= 2 && promptNum <= 12) ? promptNum : cs.numCars;
       schema = cs.schema;
-      systemNote = `Write a Full Chat motoring comparison feature about: "${prompt}". Include ${cs.numCars} cars.`;
+      systemNote = `Write a Full Chat motoring comparison feature about: "${prompt}". Include exactly ${numCars} cars.`;
     }
 
     const maxTokens = intent==='single'
@@ -330,6 +334,14 @@ CRITICAL — YEAR & GENERATION SPECIFICITY:
 - The generation field must be specific (chassis code, Mk number, facelift designation) — not just "current"
 - All specs, prices and owner commentary in the article must match the specific generation identified
 - For NEW PRICE stat: if the car is discontinued (yearTo < 2025), label it "Launch price" or "Was new from" — never "New price" for a car no longer on sale. If the car is still on sale, use "New price"
+
+CRITICAL — TECHNICAL SPECIFICATION ACCURACY:
+- If the prompt specifies a drivetrain (AWD, 4WD, 4x4, all-wheel drive, RWD, rear-wheel drive, FWD, front-wheel drive), ONLY include cars that genuinely have that exact drivetrain configuration. An SUV body style does NOT imply AWD — verify the actual driven wheels for each specific generation.
+- If the prompt specifies a fuel type (EV, electric, hybrid, PHEV, petrol, diesel, hydrogen), every single car must match exactly. Do not include a petrol car in an EV list.
+- If the prompt specifies a body style (hot hatch, estate, coupe, saloon, convertible, pickup, van), only include genuine examples of that body style.
+- If the prompt specifies a performance category (hot hatch, sports car, supercar, track car), do not include base or standard variants — use only the relevant performance variant.
+- Before including any car, mentally verify it meets ALL technical requirements stated in the prompt. If a car doesn't genuinely match, replace it with one that does.
+- When in doubt about a spec, choose a different car you are certain about rather than risk including an incorrect one.
 
 For quote fields: real attributed quotes from known automotive journalists (Evo, Top Gear, Autocar, Chris Harris, Henry Catchpole). Put attribution in "quoteAttribution".
 
