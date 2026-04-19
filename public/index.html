@@ -44,12 +44,13 @@ body{font-family:'Barlow',sans-serif;background:#F5F0E8;color:#1A1A1A;min-height
 .parr{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:20px;margin-left:auto;flex-shrink:0;transition:transform 0.15s ease;}
 
 /* PROMPT */
-#s-prompt{background:#F5F0E8;}
-.phdr{display:flex;align-items:center;justify-content:space-between;padding:20px 24px 16px;border-bottom:2px solid #1A1A1A;}
+#s-prompt{background:#F5F0E8;height:100dvh;overflow:hidden;}
+.phdr{display:flex;align-items:center;justify-content:space-between;padding:20px 24px 16px;border-bottom:2px solid #1A1A1A;flex-shrink:0;}
 .plogo{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:28px;letter-spacing:-1px;color:#1A1A1A;}
 .pbadge{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:11px;letter-spacing:3px;text-transform:uppercase;padding:6px 12px;border-radius:2px;cursor:pointer;color:#F5F0E8;transition:opacity 0.2s;}
 .pbadge:hover{opacity:0.8;}
-.pbody{flex:1;padding:28px 24px;display:flex;flex-direction:column;}
+.pbody{flex:1;padding:28px 24px 12px;display:flex;flex-direction:column;overflow-y:auto;}
+.gobtn-wrap{flex-shrink:0;padding:12px 24px 24px;background:#F5F0E8;border-top:1px solid rgba(0,0,0,0.07);}
 .peyebrow{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:11px;letter-spacing:5px;text-transform:uppercase;color:#888;margin-bottom:10px;}
 .phead{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:clamp(30px,8vw,44px);line-height:0.95;text-transform:uppercase;color:#1A1A1A;margin-bottom:22px;}
 .pta{width:100%;background:#1A1A1A;color:#F5F0E8;border:none;border-radius:4px;padding:16px 18px;font-family:'Barlow',sans-serif;font-size:15px;line-height:1.5;min-height:100px;resize:none;outline:none;margin-bottom:18px;}
@@ -332,6 +333,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
     </div>
     <div class="slbl">Quick fire</div>
     <div class="chips" id="chips"></div>
+  </div>
+  <div class="gobtn-wrap">
     <button class="gobtn" id="gobtn" onclick="startPipeline()"><span>GENERATE FEATURE</span><span>→</span></button>
     <div class="pipe-lbl" id="pipe-lbl">4-step pipeline · Full Feature mode</div>
   </div>
