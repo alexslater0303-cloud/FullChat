@@ -470,10 +470,11 @@ function buildHeroImageUrl(a, intent, personaKey) {
     const { make, model, yearFrom, generation } = a.car;
     carDesc = [yearFrom, make, model, generation && generation.length < 20 ? generation : ''].filter(Boolean).join(' ');
   } else if (a.cars && a.cars.length) {
-    // For comparison articles, name all cars in the lineup
-    carDesc = a.cars
+    // For comparison articles, name all cars explicitly as a lineup
+    const carNames = a.cars
       .map(c => [c.yearFrom, c.make, c.model].filter(Boolean).join(' '))
-      .join(', ');
+      .join(' and ');
+    carDesc = `a side-by-side lineup of ${carNames}, all cars visible together`;
   }
   const prompt = `${carDesc}, ${style}`;
   return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1920&height=768&nologo=true&model=flux`;
