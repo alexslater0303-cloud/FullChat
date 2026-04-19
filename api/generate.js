@@ -380,12 +380,13 @@ Return: {"correctedCars":[...full corrected cars...] or null}`
       tokens_used: (tester.tokens_used||0) + cost
     }).eq('id', tester.id);
 
-    await supabase.from('generations').insert({
+    const { error: logErr } = await supabase.from('generations').insert({
       tester_id: tester.id, prompt, persona,
       tokens_used: cost,
       article_headline: article.headline || null,
       used_gemini: !!research
-    }).catch(e => console.warn('Log failed:', e.message));
+    });
+    if (logErr) console.warn('Log failed:', logErr.message);
 
     send('done', {});
     res.end();
