@@ -15,19 +15,39 @@ module.exports = async (req, res) => {
 
       console.log('Wikipedia search query:', query);
 
-      // Step 1: Find the best-matching Wikipedia article
-      const searchRes = await fetch(
-        `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&srlimit=3&format=json`
-      );
-      const searchData = await searchRes.json();
-      const hits = searchData.query?.search || [];
-      if (!hits.length) {
-        console.log('Wikipedia: no search results for', query);
-        return [];
+      // Step 1: Try direct generation-specific title first (e.g. "Honda Civic Type R (FK2)")
+      let title = null;
+      if (genStr) {
+        const directTitle = `${make} ${model} (${genStr})`;
+        const directRes = await fetch(
+          `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(directTitle)}&format=json`
+        );
+        const directData = await directRes.json();
+        const directPage = Object.values(directData.query?.pages || {})[0];
+        if (directPage && directPage.pageid && directPage.pageid !== -1) {
+          title = directPage.title;
+          console.log('Wikipedia: direct title match:', title);
+        }
       }
 
-      // Step 2: Get the main thumbnail + list of images from the article
-      const title = hits[0].title;
+      // Step 2: Try year-specific search if no direct match
+      if (!title) {
+        const searchRes = await fetch(
+          `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&srlimit=5&format=json`
+        );
+        const searchData = await searchRes.json();
+        const hits = searchData.query?.search || [];
+        // Prefer results that contain the generation code or year in the title
+        const best = hits.find(h =>
+          (genStr && h.title.toLowerCase().includes(genStr.toLowerCase())) ||
+          (yearStr && h.title.includes(yearStr))
+        ) || hits[0];
+        if (!best) { console.log('Wikipedia: no results for', query); return []; }
+        title = best.title;
+        console.log('Wikipedia: search match:', title);
+      }
+
+      // Step 3: Get the main thumbnail + list of images from the article
       console.log('Wikipedia: using article', title);
 
       const pageRes = await fetch(
