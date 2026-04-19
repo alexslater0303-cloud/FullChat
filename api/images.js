@@ -7,48 +7,101 @@ module.exports = async (req, res) => {
 
   const PEXELS_KEY = process.env.PEXELS_API_KEY;
 
-  // ── Wikipedia REST API ────────────────────────────────────────────────────────
-  // Returns one accurate image from the Wikipedia article for this specific model
+  // ── MediaWiki API — proper sized thumbnail, no URL hacks ─────────────────────
   const getWikipediaImage = async (make, model) => {
+    // Try a few title formats Wikipedia commonly uses for car articles
     const attempts = [
       `${make} ${model}`,
-      `${make}_${model}`,
+      `${make} ${model} (automobile)`,
+      `${make} ${model} (car)`,
     ];
     for (const title of attempts) {
       try {
-        const r = await fetch(
-          `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`,
-          { headers: { 'User-Agent': 'FullChat/1.0 (automotive article generator)' } }
-        );
+        const params = new URLSearchParams({
+          action: 'query',
+          titles: title,
+          prop: 'pageimages',
+          pithumbsize: 1200,
+          pilicense: 'any',
+          format: 'json',
+          origin: '*',
+        });
+        const r = await fetch(`https://en.wikipedia.org/w/api.php?${params}`, {
+          headers: { 'User-Agent': 'FullChat/1.0 (automotive article generator)' }
+        });
         if (!r.ok) continue;
         const d = await r.json();
-        if (!d.thumbnail?.source) continue;
-        // Upscale the thumbnail (Wikipedia URLs contain a size prefix we can swap out)
-        const fullUrl = d.thumbnail.source.replace(/\/\d+px-/, '/1200px-');
-        return { url: fullUrl, photographer: 'Wikimedia Commons' };
-      } catch { /* try next */ }
+        const pages = Object.values(d.query?.pages || {});
+        const page = pages[0];
+        if (page && !page.missing && page.thumbnail?.source) {
+          console.log(`Wikipedia image for "${title}":`, page.thumbnail.source);
+          return { url: page.thumbnail.source, photographer: 'Wikimedia Commons' };
+        }
+      } catch (e) {
+        console.warn('Wikipedia fetch error:', e.message);
+      }
     }
+    console.log(`No Wikipedia image found for ${make} ${model}`);
     return null;
   };
 
-  // ── Pexels fallback ───────────────────────────────────────────────────────────
-  const searchPexels = async (query, count = 3) => {
-    if (!PEXELS_KEY) return [];
+  // ── Wikimedia Commons search — extra images ───────────────────────────────────
+  const getCommonsImages = async (make, model, count = 3) => {
     try {
-      const r = await fetch(
-        `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=${count}&orientation=landscape`,
-        { headers: { Authorization: PEXELS_KEY } }
-      );
-      const d = await r.json();
-      return (d.photos || []).map(p => ({
-        url: p.src.large || p.src.medium,
-        photographer: p.photographer
-      }));
-    } catch { return []; }
+      // Search commons for images of this car
+      const searchParams = new URLSearchParams({
+        action: 'query',
+        list: 'search',
+        srsearch: `${make} ${model} car`,
+        srnamespace: 6,
+        srlimit: count * 2, // fetch extra to filter
+        format: 'json',
+        origin: '*',
+      });
+      const sr = await fetch(`https://commons.wikimedia.org/w/api.php?${searchParams}`, {
+        headers: { 'User-Agent': 'FullChat/1.0' }
+      });
+      const sd = await sr.json();
+      const hits = (sd.query?.search || []).map(h => h.title);
+      if (!hits.length) return [];
+
+      // Get image URLs for the found files
+      const infoParams = new URLSearchParams({
+        action: 'query',
+        titles: hits.join('|'),
+        prop: 'imageinfo',
+        iiprop: 'url|mediatype',
+        iiurlwidth: 1200,
+        format: 'json',
+        origin: '*',
+      });
+      const ir = await fetch(`https://commons.wikimedia.org/w/api.php?${infoParams}`, {
+        headers: { 'User-Agent': 'FullChat/1.0' }
+      });
+      const id = await ir.json();
+
+      return Object.values(id.query?.pages || {})
+        .filter(p => {
+          const ii = p.imageinfo?.[0];
+          if (!ii) return false;
+          // Only bitmap images (no SVG, OGG, etc.)
+          const url = ii.thumburl || ii.url || '';
+          return url && /\.(jpg|jpeg|png|webp)/i.test(url);
+        })
+        .map(p => ({
+          url: p.imageinfo[0].thumburl || p.imageinfo[0].url,
+          photographer: 'Wikimedia Commons',
+        }))
+        .slice(0, count);
+    } catch (e) {
+      console.warn('Commons fetch error:', e.message);
+      return [];
+    }
   };
 
-  const getPexelsPhotos = async (make, model, year, bodyStyle) => {
-    // Try progressively broader queries
+  // ── Pexels fallback ───────────────────────────────────────────────────────────
+  const searchPexels = async (make, model, year, bodyStyle) => {
+    if (!PEXELS_KEY) return [];
     const queries = [
       `${make} ${model} ${year || ''}`.trim(),
       `${make} ${model} car`,
@@ -56,24 +109,36 @@ module.exports = async (req, res) => {
       `${make} ${bodyStyle || 'car'}`,
     ];
     for (const q of queries) {
-      const photos = await searchPexels(q, 3);
-      if (photos.length > 0) return photos;
+      try {
+        const r = await fetch(
+          `https://api.pexels.com/v1/search?query=${encodeURIComponent(q)}&per_page=3&orientation=landscape`,
+          { headers: { Authorization: PEXELS_KEY } }
+        );
+        const d = await r.json();
+        const photos = (d.photos || []).map(p => ({
+          url: p.src.large || p.src.medium,
+          photographer: p.photographer,
+        }));
+        if (photos.length) return photos;
+      } catch {}
     }
     return [];
   };
 
-  // ── Combine: Wikipedia hero + Pexels extras ───────────────────────────────────
+  // ── Combine sources ───────────────────────────────────────────────────────────
   try {
     const results = await Promise.all(
       cars.slice(0, 4).map(async ({ make, model, year, bodyStyle }) => {
-        const [wikiPhoto, pexelsPhotos] = await Promise.all([
+        const [wikiPhoto, commonsPhotos, pexelsPhotos] = await Promise.all([
           getWikipediaImage(make, model),
-          getPexelsPhotos(make, model, year, bodyStyle),
+          getCommonsImages(make, model, 2),
+          searchPexels(make, model, year, bodyStyle),
         ]);
 
-        // Wikipedia image goes first (most accurate), then Pexels extras
+        // Wikipedia article image first (most accurate), then Commons, then Pexels
         const photos = [
           ...(wikiPhoto ? [wikiPhoto] : []),
+          ...commonsPhotos,
           ...pexelsPhotos,
         ].slice(0, 4);
 
