@@ -812,7 +812,9 @@ async function fetchMediaAndReveal(prompt) {
 
   const carList = cars.map(c=>({
     make:c.make, model:c.model,
-    year:c.year, bodyStyle:c.bodyStyle
+    year:c.year, bodyStyle:c.bodyStyle,
+    yearFrom:c.yearFrom, yearTo:c.yearTo,
+    generation:c.generation,
   }));
 
   // Fetch images and YouTube in parallel

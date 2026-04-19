@@ -25,15 +25,24 @@ Reply "comparison" if it's asking for a list, best of, recommendations, or compa
 }
 
 // ── Marketplace URL builder ───────────────────────────────────────────────────
-function buildMarketplaceUrls(make, model, isNew = false, searchMake, searchModel) {
-  // Use stripped search names for URLs if provided, fall back to full names
+function buildMarketplaceUrls(make, model, isNew = false, searchMake, searchModel, yearFrom, yearTo) {
   const sm  = encodeURIComponent(searchMake || make);
   const smo = encodeURIComponent(searchModel || model);
   const makeSlug  = (searchMake || make).toLowerCase().replace(/\s+/g, '-');
   const modelSlug = (searchModel || model).toLowerCase().replace(/\s+/g, '-');
+
+  // Build AutoTrader URL with year range when available
+  let atUrl = `https://www.autotrader.co.uk/car-search?make=${sm}&model=${smo}`;
+  if (yearFrom) atUrl += `&year-from=${yearFrom}`;
+  if (yearTo)   atUrl += `&year-to=${yearTo}`;
+
+  // Build eBay search — include year in keyword for better filtering
+  const yearStr = yearFrom ? (yearTo && yearTo !== yearFrom ? `${yearFrom}-${yearTo}` : `${yearFrom}`) : '';
+  const ebayQuery = [sm, smo, yearStr].filter(Boolean).join('+');
+
   const urls = {
-    autotrader: `https://www.autotrader.co.uk/car-search?make=${sm}&model=${smo}`,
-    ebay:       `https://www.ebay.co.uk/sch/i.html?_nkw=${sm}+${smo}&_sacat=9801`,
+    autotrader: atUrl,
+    ebay:       `https://www.ebay.co.uk/sch/i.html?_nkw=${ebayQuery}&_sacat=9801`,
     carwow:     `https://www.carwow.co.uk/${makeSlug}/${modelSlug}`,
   };
   if (isNew) {
@@ -55,6 +64,9 @@ function singleCarSchema(depth) {
     "make": "Make", "model": "Model", "year": "e.g. 2021-present", "badge": "Top Pick",
     "searchMake": "Make (base brand only, e.g. Honda not Honda UK)",
     "searchModel": "Base model only for search — NO variant/trim/suffix (e.g. HR-V not HR-V e:HEV, Kona not Kona Hybrid, Golf not Golf GTI)",
+    "yearFrom": 2021,
+    "yearTo": 2024,
+    "generation": "e.g. Mk3 / FL5 / Third generation facelift — be specific",
     "bodyStyle": "e.g. hatchback, SUV, van",
     "isNew": false,
     "stat1_val": "£18,500", "stat1_label": "From (used)",
@@ -104,6 +116,9 @@ function comparisonSchema(depth) {
       "make": "Make", "model": "Model", "year": "e.g. 2020-present",
       "searchMake": "Base brand only",
       "searchModel": "Base model only — NO variant/trim/suffix (e.g. HR-V not HR-V e:HEV, Kona not Kona Hybrid)",
+      "yearFrom": 2020,
+      "yearTo": 2024,
+      "generation": "e.g. Mk3 / FL5 — be specific",
       "bodyStyle": "e.g. hatchback",
       "isNew": false,
       "badge": "Top Pick",
@@ -311,6 +326,15 @@ module.exports = async (req, res) => {
         role: 'user',
         content: `${systemNote}${researchBlock}
 
+CRITICAL — YEAR & GENERATION SPECIFICITY:
+- Always identify and commit to a specific year range or generation (e.g. "2015-2017 FK2", "2023-present FL5")
+- A 2015 Civic Type R and a 2024 Civic Type R are completely different cars — never conflate generations
+- If the prompt is vague, default to the most recent/relevant generation for the UK used market and state it clearly
+- Fill yearFrom and yearTo with actual numeric years (e.g. 2017, 2023) — not null, not "present"
+- yearTo should be the current year (2026) if the car is still in production
+- The generation field must be specific (chassis code, Mk number, facelift designation) — not just "current"
+- All specs, prices and owner commentary in the article must match the specific generation identified
+
 For quote fields: real attributed quotes from known automotive journalists (Evo, Top Gear, Autocar, Chris Harris, Henry Catchpole). Put attribution in "quoteAttribution".
 
 Respond with ONLY a valid JSON object — no text before or after, no markdown fences:
@@ -339,7 +363,7 @@ ${schema}`
     // Add marketplace URLs to cars
     const addMarketplaceUrls = (car) => ({
       ...car,
-      marketplaceUrls: buildMarketplaceUrls(car.make, car.model, car.isNew, car.searchMake, car.searchModel)
+      marketplaceUrls: buildMarketplaceUrls(car.make, car.model, car.isNew, car.searchMake, car.searchModel, car.yearFrom, car.yearTo)
     });
 
     if (article.articleType === 'single' && article.car) {

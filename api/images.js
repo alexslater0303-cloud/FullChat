@@ -8,13 +8,15 @@ module.exports = async (req, res) => {
   const PEXELS_KEY = process.env.PEXELS_API_KEY;
 
   // ── MediaWiki API — proper sized thumbnail, no URL hacks ─────────────────────
-  const getWikipediaImage = async (make, model) => {
+  const getWikipediaImage = async (make, model, yearFrom, generation) => {
     // Try a few title formats Wikipedia commonly uses for car articles
     const attempts = [
+      generation ? `${make} ${model} (${generation})` : null,
+      yearFrom   ? `${make} ${model} (${yearFrom})` : null,
       `${make} ${model}`,
       `${make} ${model} (automobile)`,
       `${make} ${model} (car)`,
-    ];
+    ].filter(Boolean);
     for (const title of attempts) {
       try {
         const params = new URLSearchParams({
@@ -46,13 +48,13 @@ module.exports = async (req, res) => {
   };
 
   // ── Wikimedia Commons search — extra images ───────────────────────────────────
-  const getCommonsImages = async (make, model, count = 3) => {
+  const getCommonsImages = async (make, model, yearFrom, count = 3) => {
     try {
-      // Search commons for images of this car
+      const yearTag = yearFrom ? ` ${yearFrom}` : '';
       const searchParams = new URLSearchParams({
         action: 'query',
         list: 'search',
-        srsearch: `${make} ${model} car`,
+        srsearch: `${make} ${model}${yearTag} car`,
         srnamespace: 6,
         srlimit: count * 2, // fetch extra to filter
         format: 'json',
@@ -128,11 +130,12 @@ module.exports = async (req, res) => {
   // ── Combine sources ───────────────────────────────────────────────────────────
   try {
     const results = await Promise.all(
-      cars.slice(0, 4).map(async ({ make, model, year, bodyStyle }) => {
+      cars.slice(0, 4).map(async ({ make, model, year, bodyStyle, yearFrom, yearTo, generation }) => {
+        const effectiveYear = yearFrom || year;
         const [wikiPhoto, commonsPhotos, pexelsPhotos] = await Promise.all([
-          getWikipediaImage(make, model),
-          getCommonsImages(make, model, 2),
-          searchPexels(make, model, year, bodyStyle),
+          getWikipediaImage(make, model, yearFrom, generation),
+          getCommonsImages(make, model, yearFrom, 2),
+          searchPexels(make, model, effectiveYear, bodyStyle),
         ]);
 
         // Wikipedia article image first (most accurate), then Commons, then Pexels
