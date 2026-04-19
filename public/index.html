@@ -73,16 +73,17 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 .pipe-lbl{text-align:center;margin-top:12px;font-size:12px;color:#888;}
 
 /* GENERATING */
-#s-generating{background:#F5F0E8;position:relative;min-height:100vh;}
+#s-generating{background:#111;position:relative;min-height:100vh;}
 .gen-article-bg{width:100%;min-height:100vh;}
 .gen-stream-bg{position:fixed;inset:0;z-index:98;overflow:hidden;padding:48px 36px;pointer-events:none;}
-.gen-stream-bg-text{font-family:'Barlow',sans-serif;font-size:clamp(12px,1.4vw,15px);line-height:1.9;color:rgba(26,26,26,0.55);white-space:pre-wrap;word-break:break-word;}
-.gen-overlay{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;background:rgba(245,240,232,0.45);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);transition:opacity 0.9s ease;}
+.gen-stream-bg-text{font-family:'Barlow',sans-serif;font-size:clamp(12px,1.4vw,15px);line-height:1.9;color:rgba(255,255,255,0.45);white-space:pre-wrap;word-break:break-word;}
+.gen-overlay{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;background:rgba(10,10,10,0.4);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);transition:opacity 0.9s ease;}
 .gen-overlay.revealing{opacity:0;pointer-events:none;}
 .gen-overlay-inner{flex:1;display:flex;align-items:center;justify-content:center;}
-.gen-content{display:flex;flex-direction:column;align-items:center;gap:clamp(12px,2vh,24px);padding:36px 24px;width:100%;max-width:min(90vw,600px);}
-.gen-logo{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:clamp(36px,6vw,64px);letter-spacing:-2px;color:#1A1A1A;}
-.gen-mode{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:clamp(9px,1.2vw,12px);letter-spacing:5px;text-transform:uppercase;color:#444;}
+.gen-content{display:flex;flex-direction:column;align-items:center;gap:clamp(10px,2vh,18px);padding:36px 24px;width:100%;max-width:min(90vw,600px);}
+.gen-logo{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:clamp(36px,6vw,64px);letter-spacing:-2px;color:#F5F0E8;}
+.gen-mode{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:clamp(9px,1.2vw,12px);letter-spacing:5px;text-transform:uppercase;color:#666;}
+.rev-dial-wrap{display:flex;flex-direction:column;align-items:center;gap:14px;padding:clamp(24px,4vw,40px);width:min(85vw,480px);height:min(85vw,480px);border-radius:50%;background:radial-gradient(ellipse at 40% 35%,#242424 0%,#0E0E0E 100%);box-shadow:inset 0 2px 4px rgba(255,255,255,0.07),inset 0 -2px 6px rgba(0,0,0,0.5),0 0 0 4px #1A1A1A,0 0 0 8px #3C3C3C,0 0 0 12px #1A1A1A,0 20px 60px rgba(0,0,0,0.9);justify-content:center;}
 
 /* BIG REV COUNTER */
 #rev-svg{width:min(80vw,420px);height:auto;}
@@ -364,10 +365,12 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
       <div class="gen-content">
         <div class="gen-logo">FULL<span id="g-span">CHAT</span></div>
         <div class="gen-mode" id="g-mode">Full Feature · pipeline running</div>
-        <svg id="rev-svg" viewBox="0 0 240 200" preserveAspectRatio="xMidYMid meet"></svg>
-        <div class="rev-wrap">
-          <div class="rev-status" id="rev-status">Starting engine...</div>
-          <div class="rev-step-dots" id="rev-dots"></div>
+        <div class="rev-dial-wrap">
+          <svg id="rev-svg" viewBox="0 0 240 200" preserveAspectRatio="xMidYMid meet"></svg>
+          <div class="rev-wrap">
+            <div class="rev-status" id="rev-status">Starting engine...</div>
+            <div class="rev-step-dots" id="rev-dots"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -608,7 +611,7 @@ function drawRevCounter(rpm, state, gear) {
   const nt = pt(na, 86);
   const nb1 = pt(na+90, 7), nb2 = pt(na-90, 7);
   const isRed = state === 'redline' || rpm > 78;
-  const needleColor = isRed ? '#C8102E' : '#1A1A1A';
+  const needleColor = isRed ? '#C8102E' : '#F5F0E8';
 
   // RPM labels: 1-7 (mapped to 0-100%)
   const rpmLabels = [1,2,3,4,5,6,7];
@@ -632,11 +635,11 @@ function drawRevCounter(rpm, state, gear) {
 
   svg.innerHTML = `
     <!-- Track -->
-    <path d="${arcPath(0,1)}" fill="none" stroke="#D0CBC0" stroke-width="14" stroke-linecap="round"/>
+    <path d="${arcPath(0,1)}" fill="none" stroke="#1A1A1A" stroke-width="14" stroke-linecap="round"/>
     <!-- Green zone -->
-    <path d="${arcPath(0,0.75)}" fill="none" stroke="#C8D4C8" stroke-width="14" stroke-linecap="round"/>
+    <path d="${arcPath(0,0.75)}" fill="none" stroke="#1C2A1C" stroke-width="14" stroke-linecap="round"/>
     <!-- Red zone -->
-    <path d="${arcPath(0.78,1)}" fill="none" stroke="#E0B8B8" stroke-width="14" stroke-linecap="round"/>
+    <path d="${arcPath(0.78,1)}" fill="none" stroke="#2A0A0A" stroke-width="14" stroke-linecap="round"/>
     <!-- Active fill -->
     ${pct>0?`<path d="${arcPath(0,pct)}" fill="none" stroke="${isRed?'#C8102E':c}" stroke-width="14" stroke-linecap="round"/>`:''}
     <!-- Ticks -->
@@ -650,8 +653,8 @@ function drawRevCounter(rpm, state, gear) {
     <!-- Needle -->
     <polygon points="${nt.x},${nt.y} ${nb1.x},${nb1.y} ${nb2.x},${nb2.y}" fill="${needleColor}"/>
     <!-- Centre hub -->
-    <circle cx="${CX}" cy="${CY}" r="10" fill="#D0CBC0" stroke="#AAA" stroke-width="1.5"/>
-    <circle cx="${CX}" cy="${CY}" r="5" fill="${state==='active'||state==='redline'?c:'#999'}"/>
+    <circle cx="${CX}" cy="${CY}" r="10" fill="#111" stroke="#333" stroke-width="1.5"/>
+    <circle cx="${CX}" cy="${CY}" r="5" fill="${state==='active'||state==='redline'?c:'#333'}"/>
     <!-- Gear label -->
     <text x="${CX}" y="${CY+35}" text-anchor="middle" fill="${state==='redline'?'#C8102E':state==='active'?c:'#555'}" font-size="14" font-family="'Barlow Condensed',sans-serif" font-weight="900" letter-spacing="2">${gear}</text>
   `;
