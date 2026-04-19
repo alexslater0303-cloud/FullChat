@@ -32,8 +32,8 @@ function buildMarketplaceUrls(make, model, isNew = false) {
   const modelSlug = model.toLowerCase().replace(/\s+/g, '-');
   const urls = {
     autotrader: `https://www.autotrader.co.uk/car-search?make=${m}&model=${mo}`,
-    cargurus:   `https://www.cargurus.co.uk/Cars/new/nl_Cars_d?zip=&keyword=${m}+${mo}`,
-    carwow:     `https://www.carwow.co.uk/used-cars/${makeSlug}/${modelSlug}`,
+    motors:     `https://www.motors.co.uk/search/car/results/?make=${m}&model=${mo}`,
+    carwow:     `https://www.carwow.co.uk/${makeSlug}/${modelSlug}`,
   };
   if (isNew) {
     // Try to construct a manufacturer URL

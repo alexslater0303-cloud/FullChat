@@ -189,7 +189,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 .yt-embed iframe{position:absolute;inset:0;width:100%;height:100%;border:none;}
 
 /* Marketplace links */
-.market-links{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0;}
+.market-section{margin:18px 0 6px;padding:14px 0 2px;border-top:1.5px solid #E5E0D8;}
+.market-hdr{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;letter-spacing:4px;text-transform:uppercase;color:#888;margin-bottom:10px;}
+.market-links{display:flex;gap:8px;flex-wrap:wrap;}
 .market-btn{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:11px;letter-spacing:2px;text-transform:uppercase;padding:8px 14px;border-radius:2px;text-decoration:none;display:inline-block;transition:opacity 0.15s;}
 .market-btn:hover{opacity:0.8;}
 
@@ -246,6 +248,39 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 @keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
 ::-webkit-scrollbar{width:4px;}
 ::-webkit-scrollbar-thumb{background:#ccc;border-radius:2px;}
+
+/* ── Desktop layout ─────────────────────────────────────────── */
+@media(min-width:768px){
+  .hero{min-height:460px;}
+  .hero-content{padding:40px 48px 36px;}
+  .hero-title{font-size:clamp(48px,5vw,80px);}
+  .hero-deck{font-size:17px;max-width:580px;}
+  .anav{padding:16px 48px;}
+
+  /* Centre and constrain article body */
+  .abody{max-width:940px;margin:0 auto;padding:0 48px 56px;}
+  .new-btn{max-width:844px;margin-left:auto;margin-right:auto;display:block;}
+  .fu-section{max-width:940px;margin-left:auto;margin-right:auto;}
+  .fu-inputwrap{padding:14px 32px 40px;}
+
+  /* Comparison: 2-column car grid */
+  .cars-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:20px;align-items:start;}
+  .cars-grid .car-card{margin-bottom:0;}
+
+  /* Bigger stats */
+  .stat-val{font-size:22px;}
+  .stat-lbl{font-size:10px;}
+  .car-copy,.car-body p,.fullReview{font-size:16px;line-height:1.8;}
+  .aintro{font-size:17px;}
+  .verdict-txt{font-size:17px;}
+}
+
+@media(min-width:1100px){
+  .abody{max-width:1060px;padding:0 60px 60px;}
+  .new-btn{max-width:940px;}
+  .fu-section{max-width:1060px;}
+  .hero-title{font-size:clamp(56px,5vw,96px);}
+}
 </style>
 </head>
 <body>
@@ -909,7 +944,7 @@ function renderSingleCar(a,c){
 }
 
 function renderComparison(a,c){
-  const carsHtml=(a.cars||[]).map((car,i)=>{
+  const carCards=(a.cars||[]).map((car,i)=>{
     const badge=BADGE[car.badge]||BADGE['Solid Value'];
     const urls=car.marketplaceUrls||{};
     return `
@@ -939,7 +974,7 @@ function renderComparison(a,c){
       </div>`;
   }).join('');
 
-  return carsHtml + `
+  return `<div class="cars-grid">${carCards}</div>` + `
     <div class="verdict">
       <div class="verdict-lbl" style="color:${c}">The Verdict</div>
       <div class="verdict-txt">${esc(a.verdict||'')}</div>
@@ -951,11 +986,11 @@ function renderMarketplaceLinks(urls, c) {
   if(!urls||!Object.keys(urls).length) return '';
   const btns = [
     urls.autotrader && `<a href="${urls.autotrader}" target="_blank" class="market-btn" style="background:#F5821F;color:#fff">AutoTrader</a>`,
-    urls.cargurus   && `<a href="${urls.cargurus}"   target="_blank" class="market-btn" style="background:#00A0DC;color:#fff">CarGurus</a>`,
+    urls.motors     && `<a href="${urls.motors}"     target="_blank" class="market-btn" style="background:#00843D;color:#fff">Motors.co.uk</a>`,
     urls.carwow     && `<a href="${urls.carwow}"     target="_blank" class="market-btn" style="background:#E62020;color:#fff">carwow</a>`,
     urls.manufacturer && `<a href="${urls.manufacturer}" target="_blank" class="market-btn" style="background:#1A1A1A;color:#F5F0E8">Manufacturer</a>`
   ].filter(Boolean).join('');
-  return btns ? `<div class="market-links">${btns}</div>` : '';
+  return btns ? `<div class="market-section"><div class="market-hdr">Browse live listings on</div><div class="market-links">${btns}</div></div>` : '';
 }
 
 function renderBuyingGuide(a, c) {
