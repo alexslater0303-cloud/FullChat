@@ -345,7 +345,6 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
         <div class="gen-mode" id="g-mode">Full Feature · pipeline running</div>
         <svg id="rev-svg" width="240" height="200" viewBox="0 0 240 200"></svg>
         <div class="rev-wrap">
-          <div class="rev-gear" id="rev-gear">1ST GEAR</div>
           <div class="rev-status" id="rev-status">Starting engine...</div>
           <div class="rev-step-dots" id="rev-dots"></div>
         </div>
@@ -506,28 +505,34 @@ function revSweep(fromRpm, toRpm, durationMs, onComplete) {
 }
 
 // Called when a step becomes active
+let revStreamProgress = 15;
+let _stepTicker = null;
 function revStepStart(stepIdx, statusText) {
   currentStep = stepIdx;
   setRevDot(stepIdx, 'active');
-  document.getElementById('rev-gear').textContent = STEP_DEFS[stepIdx].gear + ' GEAR';
   document.getElementById('rev-status').textContent = statusText || STEP_DEFS[stepIdx].status;
-  // Sweep from ~1k to ~2.5k as step starts
-  revSweep(revRpm, 20, 600, null);
+  // Clear any running ticker, reset progress, sweep needle to low then start crawling
+  if (_stepTicker) { clearInterval(_stepTicker); _stepTicker = null; }
+  revStreamProgress = 15;
+  revSweep(revRpm, revStreamProgress, 500, () => {
+    _stepTicker = setInterval(revStreamTick, 80);
+  });
 }
 
-// Called continuously during streaming to advance needle
-let revStreamProgress = 20;
+// Linear crawl — ~0.2 RPM per 80ms tick = takes ~27s to go from 15→82
+// This means needle won't reach the end during a typical step
 function revStreamTick() {
-  if (revStreamProgress < 85) {
-    revStreamProgress += (85 - revStreamProgress) * 0.015;
+  if (revStreamProgress < 82) {
+    revStreamProgress += 0.2;
     revRpm = revStreamProgress;
     const step = STEP_DEFS[currentStep];
-    drawRevCounter(revRpm, 'active', step?.gear || '2ND');
+    drawRevCounter(revRpm, 'active', step?.gear || '1ST');
   }
 }
 
 // Called when a step completes — hit redline then drop and shift
 async function revStepComplete(stepIdx, nextStepIdx, statusText) {
+  if (_stepTicker) { clearInterval(_stepTicker); _stepTicker = null; }
   setRevDot(stepIdx, 'done');
   document.getElementById('rev-status').textContent = statusText || 'Complete ✓';
   // Slam to redline
@@ -535,9 +540,8 @@ async function revStepComplete(stepIdx, nextStepIdx, statusText) {
   drawRevCounter(100, 'redline', STEP_DEFS[stepIdx].gear);
   await delay(300);
   if (nextStepIdx !== null && nextStepIdx < STEP_DEFS.length) {
-    // Drop to ~1k, shift gear
+    // Drop to low, ready for next step
     await new Promise(r => revSweep(100, 8, 350, r));
-    document.getElementById('rev-gear').textContent = STEP_DEFS[nextStepIdx].gear + ' GEAR';
   }
 }
 
@@ -703,9 +707,6 @@ async function startPipeline(customPrompt) {
   const overlay=document.getElementById('gen-overlay');
   overlay.classList.remove('revealing'); overlay.style.opacity='1';
 
-  // Stream ticker interval for writing step
-  let streamTicker = null;
-
   try {
     const res = await fetch('/api/generate',{
       method:'POST',headers:{'Content-Type':'application/json'},
@@ -735,14 +736,8 @@ async function startPipeline(customPrompt) {
             if(data.step){
               const si=STEP_DEFS.findIndex(s=>s.id===data.step);
               if(data.state==='active'){
-                if(streamTicker){clearInterval(streamTicker);streamTicker=null;}
                 revStepStart(si, data.status);
-                if(data.step==='write'){
-                  revStreamProgress=20;
-                  streamTicker=setInterval(revStreamTick,80);
-                }
               } else if(data.state==='done'){
-                if(streamTicker){clearInterval(streamTicker);streamTicker=null;}
                 const nextIdx = si+1 < STEP_DEFS.length ? si+1 : null;
                 await revStepComplete(si, nextIdx, data.status);
                 if(data.usedGemini) document.getElementById('a-gemini').style.display='inline-block';
@@ -764,13 +759,13 @@ async function startPipeline(customPrompt) {
             }
 
             if(currentEvent==='error'||data.error){
-              if(streamTicker)clearInterval(streamTicker);
+              if(_stepTicker){clearInterval(_stepTicker);_stepTicker=null;}
               document.getElementById('rev-status').textContent=data.message||data.error||'Error';
               await delay(3000); go('s-prompt'); return;
             }
 
             if(currentEvent==='done'){
-              if(streamTicker)clearInterval(streamTicker);
+              if(_stepTicker){clearInterval(_stepTicker);_stepTicker=null;}
               await fetchMediaAndReveal(promptVal);
             }
           }catch{}
