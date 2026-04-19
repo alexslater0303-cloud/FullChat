@@ -77,11 +77,11 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 .gen-article-bg{width:100%;min-height:100vh;}
 .gen-stream-bg{position:fixed;inset:0;z-index:98;overflow:hidden;padding:48px 36px;pointer-events:none;}
 .gen-stream-bg-text{font-family:'Barlow',sans-serif;font-size:clamp(12px,1.4vw,15px);line-height:1.9;color:rgba(26,26,26,0.55);white-space:pre-wrap;word-break:break-word;}
-.gen-overlay{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;background:rgba(245,240,232,0.35);backdrop-filter:blur(18px) saturate(120%);-webkit-backdrop-filter:blur(18px) saturate(120%);transition:opacity 0.9s ease;}
+.gen-overlay{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;background:rgba(245,240,232,0.45);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);transition:opacity 0.9s ease;}
 .gen-overlay.revealing{opacity:0;pointer-events:none;}
 .gen-overlay-inner{flex:1;display:flex;align-items:center;justify-content:center;}
 .gen-content{display:flex;flex-direction:column;align-items:center;gap:clamp(12px,2vh,24px);padding:36px 24px;width:100%;max-width:min(90vw,600px);}
-.gen-logo{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:clamp(36px,6vw,64px);letter-spacing:-2px;color:#F5F0E8;}
+.gen-logo{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:clamp(36px,6vw,64px);letter-spacing:-2px;color:#1A1A1A;}
 .gen-mode{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:clamp(9px,1.2vw,12px);letter-spacing:5px;text-transform:uppercase;color:#444;}
 
 /* BIG REV COUNTER */
@@ -608,7 +608,7 @@ function drawRevCounter(rpm, state, gear) {
   const nt = pt(na, 86);
   const nb1 = pt(na+90, 7), nb2 = pt(na-90, 7);
   const isRed = state === 'redline' || rpm > 78;
-  const needleColor = isRed ? '#C8102E' : '#F5F0E8';
+  const needleColor = isRed ? '#C8102E' : '#1A1A1A';
 
   // RPM labels: 1-7 (mapped to 0-100%)
   const rpmLabels = [1,2,3,4,5,6,7];
@@ -632,11 +632,11 @@ function drawRevCounter(rpm, state, gear) {
 
   svg.innerHTML = `
     <!-- Track -->
-    <path d="${arcPath(0,1)}" fill="none" stroke="#1A1A1A" stroke-width="14" stroke-linecap="round"/>
+    <path d="${arcPath(0,1)}" fill="none" stroke="#D0CBC0" stroke-width="14" stroke-linecap="round"/>
     <!-- Green zone -->
-    <path d="${arcPath(0,0.75)}" fill="none" stroke="#1C2A1C" stroke-width="14" stroke-linecap="round"/>
+    <path d="${arcPath(0,0.75)}" fill="none" stroke="#C8D4C8" stroke-width="14" stroke-linecap="round"/>
     <!-- Red zone -->
-    <path d="${arcPath(0.78,1)}" fill="none" stroke="#2A0A0A" stroke-width="14" stroke-linecap="round"/>
+    <path d="${arcPath(0.78,1)}" fill="none" stroke="#E0B8B8" stroke-width="14" stroke-linecap="round"/>
     <!-- Active fill -->
     ${pct>0?`<path d="${arcPath(0,pct)}" fill="none" stroke="${isRed?'#C8102E':c}" stroke-width="14" stroke-linecap="round"/>`:''}
     <!-- Ticks -->
@@ -650,8 +650,8 @@ function drawRevCounter(rpm, state, gear) {
     <!-- Needle -->
     <polygon points="${nt.x},${nt.y} ${nb1.x},${nb1.y} ${nb2.x},${nb2.y}" fill="${needleColor}"/>
     <!-- Centre hub -->
-    <circle cx="${CX}" cy="${CY}" r="10" fill="#111" stroke="#333" stroke-width="1.5"/>
-    <circle cx="${CX}" cy="${CY}" r="5" fill="${state==='active'||state==='redline'?c:'#333'}"/>
+    <circle cx="${CX}" cy="${CY}" r="10" fill="#D0CBC0" stroke="#AAA" stroke-width="1.5"/>
+    <circle cx="${CX}" cy="${CY}" r="5" fill="${state==='active'||state==='redline'?c:'#999'}"/>
     <!-- Gear label -->
     <text x="${CX}" y="${CY+35}" text-anchor="middle" fill="${state==='redline'?'#C8102E':state==='active'?c:'#555'}" font-size="14" font-family="'Barlow Condensed',sans-serif" font-weight="900" letter-spacing="2">${gear}</text>
   `;
@@ -793,7 +793,7 @@ async function startPipeline(customPrompt) {
               // Update stream preview
               const readable=data.chunk.replace(/[{}\[\]"\\]/g,' ').replace(/\s+/g,' ');
               const prev=document.getElementById('stream-preview');
-              if(prev) prev.textContent=(prev.textContent+readable).slice(-400);
+              if(prev) prev.textContent=(prev.textContent+readable).slice(-3000);
               tryProgressiveRender();
             }
 
