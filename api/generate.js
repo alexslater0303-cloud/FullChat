@@ -25,14 +25,15 @@ Reply "comparison" if it's asking for a list, best of, recommendations, or compa
 }
 
 // ── Marketplace URL builder ───────────────────────────────────────────────────
-function buildMarketplaceUrls(make, model, isNew = false) {
-  const m = encodeURIComponent(make);
-  const mo = encodeURIComponent(model);
-  const makeSlug  = make.toLowerCase().replace(/\s+/g, '-');
-  const modelSlug = model.toLowerCase().replace(/\s+/g, '-');
+function buildMarketplaceUrls(make, model, isNew = false, searchMake, searchModel) {
+  // Use stripped search names for URLs if provided, fall back to full names
+  const sm  = encodeURIComponent(searchMake || make);
+  const smo = encodeURIComponent(searchModel || model);
+  const makeSlug  = (searchMake || make).toLowerCase().replace(/\s+/g, '-');
+  const modelSlug = (searchModel || model).toLowerCase().replace(/\s+/g, '-');
   const urls = {
-    autotrader: `https://www.autotrader.co.uk/car-search?make=${m}&model=${mo}`,
-    motors:     `https://www.motors.co.uk/search/car/results/?make=${m}&model=${mo}`,
+    autotrader: `https://www.autotrader.co.uk/car-search?make=${sm}&model=${smo}`,
+    motors:     `https://www.motors.co.uk/search/car/results/?make=${sm}&model=${smo}`,
     carwow:     `https://www.carwow.co.uk/${makeSlug}/${modelSlug}`,
   };
   if (isNew) {
@@ -52,6 +53,8 @@ function singleCarSchema(depth) {
   "intro": "3-4 sentences setting the scene",
   "car": {
     "make": "Make", "model": "Model", "year": "e.g. 2021-present", "badge": "Top Pick",
+    "searchMake": "Make (base brand only, e.g. Honda not Honda UK)",
+    "searchModel": "Base model only for search — NO variant/trim/suffix (e.g. HR-V not HR-V e:HEV, Kona not Kona Hybrid, Golf not Golf GTI)",
     "bodyStyle": "e.g. hatchback, SUV, van",
     "isNew": false,
     "stat1_val": "£18,500", "stat1_label": "From (used)",
@@ -99,6 +102,8 @@ function comparisonSchema(depth) {
   "cars": [
     {
       "make": "Make", "model": "Model", "year": "e.g. 2020-present",
+      "searchMake": "Base brand only",
+      "searchModel": "Base model only — NO variant/trim/suffix (e.g. HR-V not HR-V e:HEV, Kona not Kona Hybrid)",
       "bodyStyle": "e.g. hatchback",
       "isNew": false,
       "badge": "Top Pick",
@@ -334,7 +339,7 @@ ${schema}`
     // Add marketplace URLs to cars
     const addMarketplaceUrls = (car) => ({
       ...car,
-      marketplaceUrls: buildMarketplaceUrls(car.make, car.model, car.isNew)
+      marketplaceUrls: buildMarketplaceUrls(car.make, car.model, car.isNew, car.searchMake, car.searchModel)
     });
 
     if (article.articleType === 'single' && article.car) {
