@@ -102,9 +102,10 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 .nbtn:hover{background:#1A1A1A!important;color:#F5F0E8!important;border-color:#1A1A1A!important;}
 
 /* Hero with CSS art backgrounds */
-.hero{position:relative;min-height:280px;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;}
-.hero-art{position:absolute;inset:0;}
-.hero-ov{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.96) 0%,rgba(0,0,0,0.5) 55%,rgba(0,0,0,0.1) 100%);}
+.hero{position:relative;min-height:340px;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;}
+.hero-art{position:absolute;inset:0;background-size:cover;background-position:center;transition:opacity 0.6s ease;}
+.hero-art.loading{opacity:0.6;}
+.hero-ov{position:absolute;inset:0;}
 .hero-fc{position:absolute;top:-8px;right:-8px;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:170px;color:rgba(255,255,255,0.04);line-height:1;user-select:none;pointer-events:none;}
 .hero-content{position:relative;z-index:2;padding:28px 24px 24px;}
 .hero-cat{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;letter-spacing:5px;text-transform:uppercase;color:rgba(255,255,255,0.45);margin-bottom:10px;}
@@ -432,6 +433,28 @@ const HERO_ART = {
       repeating-linear-gradient(90deg, transparent, transparent 28px, ${c}12 28px, ${c}12 30px),
       repeating-linear-gradient(45deg, transparent, transparent 14px, ${c}08 14px, ${c}08 15px);`
 };
+
+// Pollinations art style prompts per persona
+const HERO_STYLES = {
+  provocateur: 'bold vintage motorsport propaganda poster art, dramatic high contrast lighting, dynamic racing composition, cinematic wide banner, no text no lettering no words',
+  enthusiast:  'classic 1960s motorsport racing illustration, warm golden tones, detailed retro Shell-style automotive poster art, wide banner, no text no lettering no words',
+  pragmatist:  'clean Swiss modernist graphic design poster, flat geometric shapes, minimal understated colour palette, wide editorial banner, no text no lettering no words',
+  driver:      'dark cinematic rain-slicked racing track at night, dramatic motion blur headlights, low-key moody lighting, wide banner, no text no lettering no words',
+};
+
+function buildHeroImageUrl(a, intent, personaKey) {
+  const style = HERO_STYLES[personaKey] || HERO_STYLES.provocateur;
+  let carDesc = '';
+  if (intent === 'single' && a.car) {
+    const { make, model, yearFrom, generation } = a.car;
+    carDesc = [yearFrom, make, model, generation && generation.length < 20 ? generation : ''].filter(Boolean).join(' ');
+  } else if (a.cars && a.cars.length) {
+    const c = a.cars[0];
+    carDesc = [c.yearFrom, c.make, c.model].filter(Boolean).join(' ');
+  }
+  const prompt = `${carDesc}, ${style}`;
+  return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1400&height=560&nologo=true`;
+}
 
 const BADGE = {'Top Pick':{bg:'#C8102E',c:'#fff'},'Dark Horse':{bg:'#FFD700',c:'#1A1A1A'},'Solid Value':{bg:'#1B5E3B',c:'#fff'},'Avoid':{bg:'#555',c:'#fff'}};
 const SUGGESTIONS = ['Best hot hatches under £15k','Best used sports cars under £20k','AWD EVs under £20k','Japanese performance cars under £30k','Deep dive on the Honda Civic Type R','Deep dive on the Toyota GR86'];
@@ -844,9 +867,25 @@ function renderArticle(a, intent) {
   const p=P(),c=C();
   applyColor(c);
 
-  // Hero art background
+  // Hero art — CSS gradient as loading state, then swap in Pollinations image
   const heroArt=document.getElementById('a-heroart');
-  if(heroArt) heroArt.style.cssText=HERO_ART[persona](c);
+  const heroOv=document.querySelector('#s-article .hero-ov');
+  if(heroArt){
+    heroArt.style.cssText = HERO_ART[persona](c); // instant CSS art while image loads
+    heroArt.classList.add('loading');
+    const heroUrl = buildHeroImageUrl(a, intent, persona);
+    const img = new Image();
+    img.onload = () => {
+      heroArt.style.backgroundImage = `url('${heroUrl}')`;
+      heroArt.style.background = `url('${heroUrl}') center/cover no-repeat`;
+      heroArt.classList.remove('loading');
+    };
+    img.src = heroUrl;
+  }
+  // Persona-coloured gradient overlay: solid at bottom (text sits here), fades to transparent at top
+  if(heroOv){
+    heroOv.style.background = `linear-gradient(to top, ${c}F0 0%, ${c}BB 30%, ${c}55 60%, transparent 100%)`;
+  }
 
   document.getElementById('a-cat').textContent=`${p.label} · Generated Feature`;
   document.getElementById('a-title').textContent=a.headline||'';
