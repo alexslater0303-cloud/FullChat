@@ -78,16 +78,17 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 .gen-overlay{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;background:rgba(10,10,10,0.88);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);transition:opacity 0.9s ease;}
 .gen-overlay.revealing{opacity:0;pointer-events:none;}
 .gen-overlay-inner{flex:1;display:flex;align-items:center;justify-content:center;}
-.gen-content{display:flex;flex-direction:column;align-items:center;gap:16px;padding:36px 24px;width:100%;max-width:400px;}
-.gen-logo{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:40px;letter-spacing:-2px;color:#F5F0E8;}
-.gen-mode{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;letter-spacing:5px;text-transform:uppercase;color:#444;}
+.gen-content{display:flex;flex-direction:column;align-items:center;gap:clamp(12px,2vh,24px);padding:36px 24px;width:100%;max-width:min(90vw,600px);}
+.gen-logo{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:clamp(36px,6vw,64px);letter-spacing:-2px;color:#F5F0E8;}
+.gen-mode{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:clamp(9px,1.2vw,12px);letter-spacing:5px;text-transform:uppercase;color:#444;}
 
 /* BIG REV COUNTER */
+#rev-svg{width:min(80vw,420px);height:auto;}
 .rev-wrap{display:flex;flex-direction:column;align-items:center;gap:10px;width:100%;}
-.rev-gear{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:13px;letter-spacing:3px;text-transform:uppercase;color:#555;transition:color 0.3s;}
-.rev-status{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#555;text-align:center;transition:color 0.3s;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.rev-step-dots{display:flex;gap:8px;align-items:center;}
-.rev-dot{width:8px;height:8px;border-radius:50%;background:#2A2A2A;transition:all 0.3s;}
+.rev-gear{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:clamp(11px,1.4vw,15px);letter-spacing:3px;text-transform:uppercase;color:#555;transition:color 0.3s;}
+.rev-status{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:clamp(10px,1.2vw,13px);letter-spacing:2px;text-transform:uppercase;color:#555;text-align:center;transition:color 0.3s;max-width:min(80vw,400px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.rev-step-dots{display:flex;gap:clamp(6px,1vw,12px);align-items:center;}
+.rev-dot{width:clamp(7px,1vw,11px);height:clamp(7px,1vw,11px);border-radius:50%;background:#2A2A2A;transition:all 0.3s;}
 .rev-dot.active{background:var(--ac,#C8102E);transform:scale(1.3);}
 .rev-dot.done{background:#4A7A4A;}
 
@@ -345,7 +346,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
       <div class="gen-content">
         <div class="gen-logo">FULL<span id="g-span">CHAT</span></div>
         <div class="gen-mode" id="g-mode">Full Feature · pipeline running</div>
-        <svg id="rev-svg" width="240" height="200" viewBox="0 0 240 200"></svg>
+        <svg id="rev-svg" viewBox="0 0 240 200" preserveAspectRatio="xMidYMid meet"></svg>
         <div class="rev-wrap">
           <div class="rev-status" id="rev-status">Starting engine...</div>
           <div class="rev-step-dots" id="rev-dots"></div>
