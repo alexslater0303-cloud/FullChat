@@ -986,7 +986,7 @@ function renderMarketplaceLinks(urls, c) {
   if(!urls||!Object.keys(urls).length) return '';
   const btns = [
     urls.autotrader && `<a href="${urls.autotrader}" target="_blank" class="market-btn" style="background:#F5821F;color:#fff">AutoTrader</a>`,
-    urls.motors     && `<a href="${urls.motors}"     target="_blank" class="market-btn" style="background:#00843D;color:#fff">Motors.co.uk</a>`,
+    urls.ebay       && `<a href="${urls.ebay}"       target="_blank" class="market-btn" style="background:#E53238;color:#fff">eBay Motors</a>`,
     urls.carwow     && `<a href="${urls.carwow}"     target="_blank" class="market-btn" style="background:#E62020;color:#fff">carwow</a>`,
     urls.manufacturer && `<a href="${urls.manufacturer}" target="_blank" class="market-btn" style="background:#1A1A1A;color:#F5F0E8">Manufacturer</a>`
   ].filter(Boolean).join('');

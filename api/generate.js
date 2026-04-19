@@ -33,7 +33,7 @@ function buildMarketplaceUrls(make, model, isNew = false, searchMake, searchMode
   const modelSlug = (searchModel || model).toLowerCase().replace(/\s+/g, '-');
   const urls = {
     autotrader: `https://www.autotrader.co.uk/car-search?make=${sm}&model=${smo}`,
-    motors:     `https://www.motors.co.uk/search/car/results/?make=${sm}&model=${smo}`,
+    ebay:       `https://www.ebay.co.uk/sch/i.html?_nkw=${sm}+${smo}&_sacat=9801`,
     carwow:     `https://www.carwow.co.uk/${makeSlug}/${modelSlug}`,
   };
   if (isNew) {
