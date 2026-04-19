@@ -77,16 +77,16 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 .gen-article-bg{width:100%;min-height:100vh;}
 .gen-stream-bg{position:fixed;inset:0;z-index:98;overflow:hidden;padding:48px 36px;pointer-events:none;}
 .gen-stream-bg-text{font-family:'Barlow',sans-serif;font-size:clamp(12px,1.4vw,15px);line-height:1.9;color:rgba(255,255,255,0.45);white-space:pre-wrap;word-break:break-word;}
-.gen-overlay{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;background:rgba(10,10,10,0.4);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);transition:opacity 0.9s ease;}
+.gen-overlay{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;background:rgba(10,10,10,0.4);backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px);transition:opacity 0.9s ease;}
 .gen-overlay.revealing{opacity:0;pointer-events:none;}
 .gen-overlay-inner{flex:1;display:flex;align-items:center;justify-content:center;}
 .gen-content{display:flex;flex-direction:column;align-items:center;gap:clamp(10px,2vh,18px);padding:36px 24px;width:100%;max-width:min(90vw,600px);}
 .gen-logo{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:clamp(36px,6vw,64px);letter-spacing:-2px;color:#F5F0E8;}
 .gen-mode{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:clamp(9px,1.2vw,12px);letter-spacing:5px;text-transform:uppercase;color:#666;}
-.rev-dial-wrap{display:flex;flex-direction:column;align-items:center;gap:14px;padding:clamp(24px,4vw,40px);width:min(85vw,480px);height:min(85vw,480px);border-radius:50%;background:radial-gradient(ellipse at 40% 35%,#242424 0%,#0E0E0E 100%);box-shadow:inset 0 2px 4px rgba(255,255,255,0.07),inset 0 -2px 6px rgba(0,0,0,0.5),0 0 0 4px #1A1A1A,0 0 0 8px #3C3C3C,0 0 0 12px #1A1A1A,0 20px 60px rgba(0,0,0,0.9);justify-content:center;}
+.rev-dial-wrap{display:flex;flex-direction:column;align-items:center;gap:10px;padding:clamp(20px,3.5vw,36px);width:min(82vw,460px);height:min(82vw,460px);border-radius:50%;background:radial-gradient(ellipse at 40% 35%,#242424 0%,#0E0E0E 100%);box-shadow:inset 0 2px 4px rgba(255,255,255,0.07),inset 0 -2px 6px rgba(0,0,0,0.5),0 0 0 4px #1A1A1A,0 0 0 8px #3C3C3C,0 0 0 12px #1A1A1A,0 20px 60px rgba(0,0,0,0.9);justify-content:center;overflow:hidden;}
 
 /* BIG REV COUNTER */
-#rev-svg{width:min(80vw,420px);height:auto;}
+#rev-svg{width:min(68vw,360px);height:auto;flex-shrink:0;}
 .rev-wrap{display:flex;flex-direction:column;align-items:center;gap:10px;width:100%;}
 .rev-gear{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:clamp(11px,1.4vw,15px);letter-spacing:3px;text-transform:uppercase;color:#555;transition:color 0.3s;}
 .rev-status{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:clamp(10px,1.2vw,13px);letter-spacing:2px;text-transform:uppercase;color:#555;text-align:center;transition:color 0.3s;max-width:min(80vw,400px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
@@ -473,8 +473,8 @@ function buildHeroImageUrl(a, intent, personaKey) {
     // For comparison articles, name all cars explicitly as a lineup
     const carNames = a.cars
       .map(c => [c.yearFrom, c.make, c.model].filter(Boolean).join(' '))
-      .join(' and ');
-    carDesc = `a side-by-side lineup of ${carNames}, all cars visible together`;
+      .join(', ');
+    carDesc = `automotive lineup scene showing all of these cars together in a row: ${carNames}, every car fully visible side by side, group shot`;
   }
   const prompt = `${carDesc}, ${style}`;
   return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1920&height=768&nologo=true&model=flux`;
@@ -797,7 +797,10 @@ async function startPipeline(customPrompt) {
               // Update stream preview
               const readable=data.chunk.replace(/[{}\[\]"\\]/g,' ').replace(/\s+/g,' ');
               const prev=document.getElementById('stream-preview');
-              if(prev) prev.textContent=(prev.textContent+readable).slice(-3000);
+              if(prev){
+                const withBreaks=readable.replace(/(.{60}\S*)\s/g,'$1\n');
+                prev.textContent=(prev.textContent+withBreaks).slice(-4000);
+              }
               tryProgressiveRender();
             }
 
