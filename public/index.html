@@ -454,10 +454,10 @@ const HERO_ART = {
 
 // Pollinations art style prompts per persona
 const HERO_STYLES = {
-  provocateur: 'bold vintage motorsport propaganda poster, hand painted in thick textured acrylics, visible impasto brushstrokes, dramatic high contrast lighting, dynamic racing composition, wide cinematic banner, no text no lettering no words',
-  enthusiast:  'classic 1960s motorsport racing illustration, hand painted in rich textured acrylics, warm golden tones, visible canvas texture and brushwork, retro automotive poster art, wide banner, no text no lettering no words',
-  pragmatist:  'clean modernist automotive art, hand painted in flat textured acrylics, controlled precise brushstrokes, minimal understated palette, wide editorial banner, no text no lettering no words',
-  driver:      'dark cinematic rain-slicked night track, hand painted in moody textured acrylics, expressive impasto brushstrokes, dramatic low-key lighting and motion blur, wide banner, no text no lettering no words',
+  provocateur: 'bold vintage motorsport propaganda poster, hand painted in thick impasto acrylics, full greyscale palette of black white and rich grey tones with bold crimson red as the only colour accent, heavy visible brushstrokes and raw canvas texture, dramatic high contrast composition, no text no lettering no words',
+  enthusiast:  'classic motorsport racing illustration, hand painted in thick textured acrylics, full greyscale palette of black white and rich grey tones with deep navy blue as the only colour accent, expressive brushwork and visible canvas grain, detailed automotive poster art, no text no lettering no words',
+  pragmatist:  'modernist automotive poster art, hand painted in controlled thick acrylics, full greyscale palette of black white and rich grey tones with forest green as the only colour accent, precise confident brushstrokes and raw canvas texture, minimal clean composition, no text no lettering no words',
+  driver:      'cinematic night racing scene, hand painted in moody thick acrylics, full greyscale palette of black white and rich grey tones with dark slate blue as the only colour accent, expressive impasto brushstrokes and visible canvas texture, dramatic low-key lighting, no text no lettering no words',
 };
 
 function buildHeroImageUrl(a, intent, personaKey) {
@@ -1051,7 +1051,6 @@ function renderMarketplaceLinks(urls, c) {
   if(!urls||!Object.keys(urls).length) return '';
   const btns = [
     urls.autotrader && `<a href="${urls.autotrader}" target="_blank" class="market-btn" style="background:#F5821F;color:#fff">AutoTrader</a>`,
-    urls.ebay       && `<a href="${urls.ebay}"       target="_blank" class="market-btn" style="background:#E53238;color:#fff">eBay Motors</a>`,
     urls.carwow     && `<a href="${urls.carwow}"     target="_blank" class="market-btn" style="background:#E62020;color:#fff">carwow</a>`,
     urls.manufacturer && `<a href="${urls.manufacturer}" target="_blank" class="market-btn" style="background:#1A1A1A;color:#F5F0E8">Manufacturer</a>`
   ].filter(Boolean).join('');
