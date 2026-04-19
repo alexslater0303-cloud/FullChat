@@ -5,79 +5,108 @@ module.exports = async (req, res) => {
   const { cars } = req.body || {};
   if (!cars || !Array.isArray(cars)) return res.status(400).json({ error: 'cars array required' });
 
-  const GOOGLE_KEY = process.env.GOOGLE_CSE_KEY;
-  const GOOGLE_CX  = process.env.GOOGLE_CSE_ID;
-  const PEXELS_KEY = process.env.PEXELS_API_KEY;
-
-  // ── Google Custom Search Images ───────────────────────────────────────────────
-  const searchGoogle = async (make, model, yearFrom, generation, count = 4) => {
-    if (!GOOGLE_KEY || !GOOGLE_CX) return [];
-    // Build a specific query: year + make + model + generation code
-    const yearStr = yearFrom ? String(yearFrom) : '';
-    const genStr  = generation && generation.length < 20 ? generation : '';
-    const query   = [yearStr, make, model, genStr].filter(Boolean).join(' ');
-
+  // ── Wikipedia / Wikimedia Commons image search ────────────────────────────────
+  const searchWikipedia = async (make, model, yearFrom, generation) => {
     try {
-      const params = new URLSearchParams({
-        key:        GOOGLE_KEY,
-        cx:         GOOGLE_CX,
-        q:          query,
-        searchType: 'image',
-        imgType:    'photo',
-        imgSize:    'large',
-        num:        count,
-        safe:       'off',
-      });
-      const r = await fetch(`https://www.googleapis.com/customsearch/v1?${params}`);
-      const d = await r.json();
-      console.log('Google CSE response:', JSON.stringify({ query, error: d.error, itemCount: d.items?.length, cx: GOOGLE_CX?.slice(0,8), key: GOOGLE_KEY?.slice(0,10) }));
-      if (d.error) {
-        console.error('Google CSE error:', d.error.code, d.error.message);
+      // Build search query — generation code gives best specificity (e.g. "Honda Civic Type R FK2")
+      const genStr  = generation && generation.length < 20 ? generation : '';
+      const yearStr = yearFrom ? String(yearFrom) : '';
+      const query   = [make, model, genStr, yearStr].filter(Boolean).join(' ');
+
+      console.log('Wikipedia search query:', query);
+
+      // Step 1: Find the best-matching Wikipedia article
+      const searchRes = await fetch(
+        `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&srlimit=3&format=json`
+      );
+      const searchData = await searchRes.json();
+      const hits = searchData.query?.search || [];
+      if (!hits.length) {
+        console.log('Wikipedia: no search results for', query);
         return [];
       }
-      return (d.items || []).map(item => ({
-        url:          item.link,
-        photographer: item.displayLink,
-      }));
+
+      // Step 2: Get the main thumbnail + list of images from the article
+      const title = hits[0].title;
+      console.log('Wikipedia: using article', title);
+
+      const pageRes = await fetch(
+        `https://en.wikipedia.org/w/api.php?action=query&prop=pageimages|images&pithumbsize=1200&titles=${encodeURIComponent(title)}&imlimit=20&format=json`
+      );
+      const pageData = await pageRes.json();
+      const page = Object.values(pageData.query?.pages || {})[0];
+      if (!page) return [];
+
+      const photos = [];
+
+      // Main article thumbnail (most reliable — usually the infobox photo)
+      if (page.thumbnail?.source) {
+        photos.push({ url: page.thumbnail.source, photographer: 'Wikipedia' });
+      }
+
+      // Additional images listed in the article — resolve each to its full URL
+      const imageFiles = (page.images || [])
+        .map(i => i.title)
+        .filter(t =>
+          t.match(/\.(jpg|jpeg|png|webp)$/i) &&
+          !t.match(/flag|logo|icon|arrow|map|badge|emblem|button|blank|stub|question|commons-logo/i)
+        )
+        .slice(0, 8); // check up to 8 candidates
+
+      for (const fileTitle of imageFiles) {
+        if (photos.length >= 4) break;
+        try {
+          const fileRes = await fetch(
+            `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(fileTitle)}&prop=imageinfo&iiprop=url&iiurlwidth=1200&format=json`
+          );
+          const fileData = await fileRes.json();
+          const filePage = Object.values(fileData.query?.pages || {})[0];
+          const url = filePage?.imageinfo?.[0]?.thumburl;
+          if (url && !photos.some(p => p.url === url)) {
+            photos.push({ url, photographer: 'Wikimedia Commons' });
+          }
+        } catch {}
+      }
+
+      console.log('Wikipedia: found', photos.length, 'photos for', title);
+      return photos.slice(0, 4);
+
     } catch (e) {
-      console.error('Google CSE fetch error:', e.message);
+      console.error('Wikipedia fetch error:', e.message);
       return [];
     }
   };
 
-  // ── Pexels fallback (if Google not configured) ────────────────────────────────
-  const searchPexels = async (make, model, yearFrom, bodyStyle) => {
-    if (!PEXELS_KEY) return [];
-    const queries = [
-      `${make} ${model} ${yearFrom || ''}`.trim(),
-      `${make} ${model} car`,
-      `${make} ${model}`,
-    ];
-    for (const q of queries) {
-      try {
-        const r = await fetch(
-          `https://api.pexels.com/v1/search?query=${encodeURIComponent(q)}&per_page=4&orientation=landscape`,
-          { headers: { Authorization: PEXELS_KEY } }
-        );
-        const d = await r.json();
-        const photos = (d.photos || []).map(p => ({
-          url: p.src.large || p.src.medium,
-          photographer: p.photographer,
-        }));
-        if (photos.length) return photos;
-      } catch {}
-    }
-    return [];
+  // ── Google CSE fallback (if configured) ──────────────────────────────────────
+  const GOOGLE_KEY = process.env.GOOGLE_CSE_KEY;
+  const GOOGLE_CX  = process.env.GOOGLE_CSE_ID;
+
+  const searchGoogle = async (make, model, yearFrom, generation, count = 4) => {
+    if (!GOOGLE_KEY || !GOOGLE_CX) return [];
+    const yearStr = yearFrom ? String(yearFrom) : '';
+    const genStr  = generation && generation.length < 20 ? generation : '';
+    const query   = [yearStr, make, model, genStr].filter(Boolean).join(' ');
+    try {
+      const params = new URLSearchParams({
+        key: GOOGLE_KEY, cx: GOOGLE_CX, q: query,
+        searchType: 'image', imgType: 'photo', imgSize: 'large', num: count, safe: 'off',
+      });
+      const r = await fetch(`https://www.googleapis.com/customsearch/v1?${params}`);
+      const d = await r.json();
+      if (d.error) { console.error('Google CSE error:', d.error.code, d.error.message); return []; }
+      return (d.items || []).map(item => ({ url: item.link, photographer: item.displayLink }));
+    } catch (e) { console.error('Google CSE fetch error:', e.message); return []; }
   };
 
-  // ── Main ──────────────────────────────────────────────────────────────────────
+  // ── Main ─────────────────────────────────────────────────────────────────────
   try {
     const results = await Promise.all(
-      cars.slice(0, 4).map(async ({ make, model, year, bodyStyle, yearFrom, yearTo, generation }) => {
-            const photos = (GOOGLE_KEY && GOOGLE_CX)
-          ? await searchGoogle(make, model, yearFrom, generation, 4)
-          : [];
-
+      cars.slice(0, 4).map(async ({ make, model, yearFrom, generation }) => {
+        // Try Wikipedia first; fall back to Google CSE if available
+        let photos = await searchWikipedia(make, model, yearFrom, generation);
+        if (!photos.length && GOOGLE_KEY && GOOGLE_CX) {
+          photos = await searchGoogle(make, model, yearFrom, generation, 4);
+        }
         return { make, model, photos };
       })
     );
