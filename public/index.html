@@ -47,8 +47,10 @@ body{font-family:'Barlow',sans-serif;background:#F5F0E8;color:#1A1A1A;min-height
 #s-prompt{background:#F5F0E8;}
 .phdr{display:flex;align-items:center;justify-content:space-between;padding:20px 24px 16px;border-bottom:2px solid #1A1A1A;}
 .plogo{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:28px;letter-spacing:-1px;color:#1A1A1A;}
-.pbadge{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:11px;letter-spacing:3px;text-transform:uppercase;padding:6px 12px;border-radius:2px;cursor:pointer;color:#F5F0E8;transition:opacity 0.2s;}
+.pbadge{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;letter-spacing:3px;text-transform:uppercase;padding:7px 12px;border-radius:2px;cursor:pointer;color:#F5F0E8;transition:opacity 0.2s;white-space:nowrap;}
 .pbadge:hover{opacity:0.8;}
+.plogo-wrap{display:flex;flex-direction:column;gap:2px;}
+.p-persona-lbl{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;letter-spacing:4px;text-transform:uppercase;}
 .pbody{flex:1;padding:28px 24px;display:flex;flex-direction:column;}
 .peyebrow{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:11px;letter-spacing:5px;text-transform:uppercase;color:#888;margin-bottom:10px;}
 .phead{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:clamp(30px,8vw,44px);line-height:0.95;text-transform:uppercase;color:#1A1A1A;margin-bottom:22px;}
@@ -80,9 +82,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 .gen-overlay{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;background:rgba(10,10,10,0.4);backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px);transition:opacity 0.9s ease;}
 .gen-overlay.revealing{opacity:0;pointer-events:none;}
 .gen-overlay-inner{flex:1;display:flex;align-items:center;justify-content:center;}
-.gen-content{display:flex;flex-direction:column;align-items:center;gap:clamp(10px,2vh,18px);padding:36px 24px;width:100%;max-width:min(90vw,600px);}
-.gen-logo{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:clamp(36px,6vw,64px);letter-spacing:-2px;color:#F5F0E8;}
-.gen-mode{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:clamp(9px,1.2vw,12px);letter-spacing:5px;text-transform:uppercase;color:#666;}
+.gen-content{display:flex;flex-direction:column;align-items:center;gap:clamp(6px,1.5vh,14px);padding:24px 24px 32px;width:100%;max-width:min(90vw,600px);}
+.gen-logo{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:clamp(56px,10vw,120px);letter-spacing:-3px;color:#F5F0E8;line-height:1;}
+.gen-mode{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:clamp(9px,1.4vw,13px);letter-spacing:5px;text-transform:uppercase;color:#666;}
 
 /* BIG REV COUNTER */
 #rev-svg{width:min(80vw,420px);height:min(80vw,420px);flex-shrink:0;}
@@ -154,8 +156,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 .stat-val{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:20px;line-height:1;color:#1A1A1A;display:block;}
 .stat-lbl{font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#888;display:block;margin-top:2px;}
 .car-div{border:none;border-top:1px solid #E5E0D8;margin:0 0 12px;}
-.deep-dive-btn{display:block;width:100%;margin-top:14px;padding:10px 16px;background:transparent;border:1.5px solid;border-radius:2px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:11px;letter-spacing:3px;text-transform:uppercase;cursor:pointer;transition:all 0.15s;text-align:center;}
-.deep-dive-btn:hover{opacity:0.7;}
+.deep-dive-btn{display:block;width:100%;margin-top:14px;padding:12px 16px;border:none;border-radius:2px;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:12px;letter-spacing:3px;text-transform:uppercase;cursor:pointer;transition:opacity 0.15s;text-align:center;color:#fff!important;}
+.deep-dive-btn:hover{opacity:0.82;}
 .car-copy{font-size:14px;line-height:1.6;color:#333;margin-bottom:12px;}
 .full-review{font-size:14px;line-height:1.7;color:#333;margin-bottom:16px;}
 .full-review p{margin-bottom:12px;}
@@ -333,8 +335,11 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 <!-- PROMPT -->
 <div id="s-prompt" class="screen">
   <div class="phdr">
-    <div class="plogo">FULL<span id="p-span">CHAT</span></div>
-    <div class="pbadge" id="p-badge" onclick="go('s-splash')"></div>
+    <div class="plogo-wrap">
+      <div class="plogo">FULL<span id="p-span">CHAT</span></div>
+      <div class="p-persona-lbl" id="p-persona-lbl"></div>
+    </div>
+    <div class="pbadge" id="p-badge" onclick="go('s-splash')">← BACK TO PERSONAS</div>
   </div>
   <div class="pbody">
     <div class="peyebrow" id="p-greeting">What do you want to know?</div>
@@ -708,8 +713,9 @@ function applyColor(c) {
 
 function selectPersona(key) {
   persona=key; const p=PERSONAS[key]; applyColor(p.color);
-  document.getElementById('p-badge').textContent=p.label;
   document.getElementById('p-badge').style.background=p.color;
+  const lbl=document.getElementById('p-persona-lbl');
+  if(lbl){lbl.textContent=p.label;lbl.style.color=p.color;}
   go('s-prompt');
 }
 function setPrompt(t){document.getElementById('p-input').value=t;}
@@ -1039,7 +1045,7 @@ function renderComparison(a,c){
           <div class="car-copy">${esc(car.copy)}</div>
           ${car.quote?`<div class="car-qblock" style="border-left-color:${c}"><div class="car-qtext">"${esc(car.quote)}"</div>${car.quoteAttribution?`<div class="car-qattr" style="color:${c}">— ${esc(car.quoteAttribution)}</div>`:''}</div>`:''}
           ${renderMarketplaceLinks(urls,c)}
-          <button class="deep-dive-btn" onclick="generateAlternative('${esc(car.make)}','${esc(car.model)}')" style="border-color:${c};color:${c}">↓ Deep dive on the ${esc(car.make)} ${esc(car.model)}</button>
+          <button class="deep-dive-btn" onclick="generateAlternative('${esc(car.make)}','${esc(car.model)}')" style="background:${c}">↓ DEEP DIVE · ${esc(car.make).toUpperCase()} ${esc(car.model).toUpperCase()}</button>
         </div>
       </div>`;
   }).join('');
