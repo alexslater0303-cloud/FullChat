@@ -214,6 +214,14 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 .bguide-body{padding:14px 18px;}
 .guide-item{display:flex;gap:12px;margin-bottom:12px;align-items:flex-start;}
 .guide-dot{width:8px;height:8px;border-radius:50%;margin-top:5px;flex-shrink:0;}
+.runcosts{background:white;border:2px solid #1A1A1A;border-radius:4px;overflow:hidden;margin-bottom:8px;}
+.runcosts-hdr{padding:12px 18px;}
+.runcosts-ttl{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:15px;letter-spacing:2px;text-transform:uppercase;color:#F5F0E8;}
+.runcosts-grid{padding:4px 0;}
+.runcost-row{display:flex;justify-content:space-between;align-items:baseline;padding:9px 18px;border-bottom:1px solid #F0EDE8;}
+.runcost-row:last-child{border-bottom:none;}
+.runcost-lbl{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#888;}
+.runcost-val{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:14px;color:#1A1A1A;text-align:right;}
 .guide-txt{font-size:13px;line-height:1.5;color:#333;}
 
 /* Alternatives */
@@ -557,34 +565,37 @@ function revSweep(fromRpm, toRpm, durationMs, onComplete) {
 }
 
 // Called when a step becomes active
-let revStreamProgress = 15;
 let _stepTicker = null;
 function revStepStart(stepIdx, statusText) {
   currentStep = stepIdx;
   setRevDot(stepIdx, 'active');
   document.getElementById('rev-status').textContent = statusText || STEP_DEFS[stepIdx].status;
-  // Clear any running ticker, reset progress, sweep needle to low then start crawling
   if (_stepTicker) { clearInterval(_stepTicker); _stepTicker = null; }
-  revStreamProgress = 15;
-  revSweep(revRpm, revStreamProgress, 500, () => {
-    _stepTicker = setInterval(revStreamTick, 80);
+  _revOscillating = false;
+  // Sweep to start position then begin oscillation
+  revSweep(revRpm, 15, 500, () => {
+    _revOscillating = true;
+    revOscillateLoop();
   });
 }
 
-// Linear crawl — ~0.2 RPM per 80ms tick = takes ~27s to go from 15→82
-// This means needle won't reach the end during a typical step
-function revStreamTick() {
-  if (revStreamProgress < 82) {
-    revStreamProgress += 0.2;
-    revRpm = revStreamProgress;
-    const step = STEP_DEFS[currentStep];
-    drawRevCounter(revRpm, 'active', step?.gear || '1ST');
+// Continuous oscillating loop — sweeps up, drops, repeats until stopped
+let _revOscillating = false;
+async function revOscillateLoop() {
+  while (_revOscillating) {
+    await new Promise(r => revSweep(revRpm, 74, 4500, r));
+    if (!_revOscillating) break;
+    await delay(250);
+    await new Promise(r => revSweep(74, 10, 550, r));
+    if (!_revOscillating) break;
+    await delay(300);
   }
 }
 
 // Called when a step completes — hit redline then drop and shift
 async function revStepComplete(stepIdx, nextStepIdx, statusText) {
   if (_stepTicker) { clearInterval(_stepTicker); _stepTicker = null; }
+  _revOscillating = false;
   setRevDot(stepIdx, 'done');
   document.getElementById('rev-status').textContent = statusText || 'Complete ✓';
   // Slam to redline
@@ -995,9 +1006,11 @@ function renderSingleCar(a,c){
       <div class="verdict-txt">${esc(car.verdict||a.verdict||'')}</div>
     </div>
 
-    ${renderMarketplaceLinks(urls,c)}
+    ${renderRunningCosts(car,c)}
 
     ${renderBuyingGuide(a,c)}
+
+    ${renderMarketplaceLinks(urls,c)}
 
     ${(a.alternatives||[]).length?`
     <div class="srule"><div class="srule-line"></div><div class="srule-text">Alternatives</div><div class="srule-line"></div></div>
@@ -1066,6 +1079,35 @@ function renderMarketplaceLinks(urls, c) {
     urls.manufacturer && `<a href="${urls.manufacturer}" target="_blank" class="market-btn" style="background:#1A1A1A;color:#F5F0E8">Manufacturer</a>`
   ].filter(Boolean).join('');
   return btns ? `<div class="market-section"><div class="market-hdr">Browse live listings on</div><div class="market-links">${btns}</div></div>` : '';
+}
+
+function renderRunningCosts(car, c) {
+  const rc = car.runningCosts;
+  if (!rc) return '';
+  const items = [
+    ['Insurance', rc.insuranceGroup],
+    ['Road Tax', rc.roadTax],
+    ['Fuel Cost', rc.fuelCost],
+    ['Service Interval', rc.serviceInterval],
+    ['Minor Service', rc.minorService],
+    ['Major Service', rc.majorService],
+    ['Tyres (per axle)', rc.tyresCost],
+    ['Cam Belt / Chain', rc.cambeltOrChain],
+    ['Est. Annual Total', rc.annualTotal],
+  ].filter(([,v]) => v);
+  if (!items.length) return '';
+  return `
+    <div class="srule"><div class="srule-line"></div><div class="srule-text">Running Costs</div><div class="srule-line"></div></div>
+    <div class="runcosts">
+      <div class="runcosts-hdr" style="background:${c}"><div class="runcosts-ttl">What it costs to live with</div></div>
+      <div class="runcosts-grid">
+        ${items.map(([label, val]) => `
+          <div class="runcost-row">
+            <div class="runcost-lbl">${esc(label)}</div>
+            <div class="runcost-val">${esc(val)}</div>
+          </div>`).join('')}
+      </div>
+    </div>`;
 }
 
 function renderBuyingGuide(a, c) {

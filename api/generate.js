@@ -79,7 +79,18 @@ function singleCarSchema(depth) {
     "pros": ["Pro 1", "Pro 2", "Pro 3"],
     "cons": ["Con 1", "Con 2", "Con 3"],
     "whoIsItFor": "2-3 sentences describing the ideal owner",
-    "verdict": "One definitive paragraph — should I buy one?"
+    "verdict": "One definitive paragraph — should I buy one?",
+    "runningCosts": {
+      "insuranceGroup": "Group XX of 50",
+      "roadTax": "£XXX/year",
+      "fuelCost": "~£X,XXX/year at 10,000 miles (real-world XXmpg)",
+      "serviceInterval": "Every XX,XXX miles or X years",
+      "minorService": "~£XXX",
+      "majorService": "~£XXX",
+      "tyresCost": "~£XXX per axle (tyre size)",
+      "cambeltOrChain": "Chain — no scheduled change / Belt — change at XXk miles (~£XXX)",
+      "annualTotal": "~£X,XXX/year estimated total cost of ownership"
+    }
   },
   "alternatives": [
     {
@@ -89,7 +100,10 @@ function singleCarSchema(depth) {
     }
   ],
   "buyingGuide": [
-    { "title": "Watch point", "detail": "One sentence of practical buying advice." }
+    {
+      "title": "Check point title",
+      "detail": "Detailed practical advice — what to physically check, listen for, smell for, or ask about when viewing and test driving. Be specific: mention particular components, known failure points, sounds to listen for (e.g. clunking from rear diff on lock, rattling timing chain on cold start), things to look for under the bonnet, gearbox feel, clutch bite point, brake pedal feel, signs of previous accident damage, service history red flags."
+    }
   ]
 }`;
 }
@@ -342,6 +356,8 @@ CRITICAL — TECHNICAL SPECIFICATION ACCURACY:
 - If the prompt specifies a performance category (hot hatch, sports car, supercar), do not include base or standard variants — use only the relevant performance variant.
 - CERTAINTY RULE: If you are not 100% certain a car has the required specification, do NOT include it. Pick a different car you ARE certain about. A shorter list of accurate cars is infinitely better than a longer list with one hallucinated spec.
 
+VOICE REMINDER: Do NOT write "I drove", "I found", "in my experience", "behind the wheel I". You have not driven these cars. Write as a curator of real-world press and owner experience — second person ("you'll find", "push it hard and it rewards you") or authoritative third person ("press testers noted", "owners report"). First person belongs only inside the quote field, attributed to the journalist who actually drove it.
+
 For quote fields: real attributed quotes from known automotive journalists (Evo, Top Gear, Autocar, Chris Harris, Henry Catchpole). Put attribution in "quoteAttribution".
 
 Respond with ONLY a valid JSON object — no text before or after, no markdown fences:
@@ -423,13 +439,29 @@ If all cars pass, return {"passedAll": true, "errors": []}`;
         const fcRaw = fcGeminiData.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
         const fcResult = parseJSON(fcRaw);
 
-        if (fcResult && !fcResult.passedAll && fcResult.errors?.length) {
-          console.log('Fact-check found errors:', JSON.stringify(fcResult.errors));
-          send('step', { step:'fact', state:'active', status:`Fixing ${fcResult.errors.length} error(s)...` });
+        // ── Voice scan: catch any first-person driving claims Claude snuck in ──
+        const voiceErrors = [];
+        const firstPersonPattern = /\b(I drove|I found|I tested|I noticed|I felt|I tried|I spent|I pushed|I took|I've driven|I've lived|I've spent|I've had|in my (time|experience|hands|ownership)|behind the wheel[,\s]+I|my test|my time with|my week with|my month with|during my)\b/gi;
+        const bodyFields = article.articleType === 'single'
+          ? [article.car?.fullReview, article.car?.copy, article.intro]
+          : [...(article.cars||[]).map(c => c.copy), article.intro];
+        bodyFields.filter(Boolean).forEach(text => {
+          const matches = text.match(firstPersonPattern);
+          if (matches) voiceErrors.push(`First-person driving language found: "${matches[0]}" — rewrite in second or third person (the author has not driven these cars)`);
+        });
+        if (voiceErrors.length) console.log('Voice check found issues:', voiceErrors);
+
+        const allErrors = [...(fcResult?.errors||[]), ...voiceErrors.map(issue => ({ carIndex: -1, issue }))];
+
+        if (allErrors.length) {
+          console.log('Fact-check found errors:', JSON.stringify(allErrors));
+          send('step', { step:'fact', state:'active', status:`Fixing ${allErrors.length} error(s)...` });
 
           // Build error summary for Claude rewrite
-          const errorList = fcResult.errors.map(e =>
-            `- Car ${e.carIndex + 1} (${carsToCheck[e.carIndex]?.make} ${carsToCheck[e.carIndex]?.model}): ${e.issue}`
+          const errorList = allErrors.map(e =>
+            e.carIndex >= 0
+              ? `- Car ${e.carIndex + 1} (${carsToCheck[e.carIndex]?.make} ${carsToCheck[e.carIndex]?.model}): ${e.issue}`
+              : `- VOICE ERROR: ${e.issue}`
           ).join('\n');
 
           // Ask Claude to rewrite the article fixing the specific errors
@@ -446,9 +478,10 @@ ${errorList}
 Here is the current article JSON:
 ${JSON.stringify(article)}
 
-Rewrite the ENTIRE article JSON, fixing ONLY the flagged errors. For each flagged car:
-- Replace it with a different car that ACTUALLY has the required specification (e.g. if AWD is required, choose a car that genuinely offers AWD as standard)
-- Keep all other cars and content unchanged
+Rewrite the ENTIRE article JSON, fixing ALL of the flagged errors:
+- FACTUAL errors: replace the flagged car with one that genuinely has the required specification
+- VOICE errors: rewrite any first-person driving claims ("I drove", "I found", etc.) in second person ("you'll find", "push it and it rewards you") or third person ("press testers noted", "owners report"). The author has not driven these cars — first person belongs only in the attributed quote field.
+- Keep all unflagged content unchanged
 - Return ONLY valid JSON with the same schema as the input
 
 ${schema}`
