@@ -83,10 +83,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 .gen-content{display:flex;flex-direction:column;align-items:center;gap:clamp(10px,2vh,18px);padding:36px 24px;width:100%;max-width:min(90vw,600px);}
 .gen-logo{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:clamp(36px,6vw,64px);letter-spacing:-2px;color:#F5F0E8;}
 .gen-mode{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:clamp(9px,1.2vw,12px);letter-spacing:5px;text-transform:uppercase;color:#666;}
-.rev-dial-wrap{display:flex;align-items:center;justify-content:center;width:min(82vw,460px);height:min(82vw,460px);border-radius:50%;background:radial-gradient(ellipse at 40% 35%,#242424 0%,#0E0E0E 100%);box-shadow:inset 0 2px 4px rgba(255,255,255,0.07),inset 0 -2px 6px rgba(0,0,0,0.5),0 0 0 4px #1A1A1A,0 0 0 8px #3C3C3C,0 0 0 12px #1A1A1A,0 20px 60px rgba(0,0,0,0.9);}
 
 /* BIG REV COUNTER */
-#rev-svg{width:min(72vw,400px);height:min(72vw,400px);flex-shrink:0;}
+#rev-svg{width:min(80vw,420px);height:min(80vw,420px);flex-shrink:0;}
 .rev-wrap{display:flex;flex-direction:column;align-items:center;gap:10px;width:100%;}
 .rev-gear{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:clamp(11px,1.4vw,15px);letter-spacing:3px;text-transform:uppercase;color:#555;transition:color 0.3s;}
 .rev-status{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:clamp(10px,1.2vw,13px);letter-spacing:2px;text-transform:uppercase;color:#555;text-align:center;transition:color 0.3s;max-width:min(80vw,400px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
@@ -155,6 +154,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 .stat-val{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:20px;line-height:1;color:#1A1A1A;display:block;}
 .stat-lbl{font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#888;display:block;margin-top:2px;}
 .car-div{border:none;border-top:1px solid #E5E0D8;margin:0 0 12px;}
+.deep-dive-btn{display:block;width:100%;margin-top:14px;padding:10px 16px;background:transparent;border:1.5px solid;border-radius:2px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:11px;letter-spacing:3px;text-transform:uppercase;cursor:pointer;transition:all 0.15s;text-align:center;}
+.deep-dive-btn:hover{opacity:0.7;}
 .car-copy{font-size:14px;line-height:1.6;color:#333;margin-bottom:12px;}
 .full-review{font-size:14px;line-height:1.7;color:#333;margin-bottom:16px;}
 .full-review p{margin-bottom:12px;}
@@ -365,9 +366,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
       <div class="gen-content">
         <div class="gen-logo">FULL<span id="g-span">CHAT</span></div>
         <div class="gen-mode" id="g-mode">Full Feature · pipeline running</div>
-        <div class="rev-dial-wrap">
-          <svg id="rev-svg" viewBox="0 -8 240 240" preserveAspectRatio="xMidYMid meet"></svg>
-        </div>
+        <svg id="rev-svg" viewBox="0 -8 240 240" preserveAspectRatio="xMidYMid meet"></svg>
         <div class="rev-wrap">
           <div class="rev-status" id="rev-status">Starting engine...</div>
           <div class="rev-step-dots" id="rev-dots"></div>
@@ -1040,6 +1039,7 @@ function renderComparison(a,c){
           <div class="car-copy">${esc(car.copy)}</div>
           ${car.quote?`<div class="car-qblock" style="border-left-color:${c}"><div class="car-qtext">"${esc(car.quote)}"</div>${car.quoteAttribution?`<div class="car-qattr" style="color:${c}">— ${esc(car.quoteAttribution)}</div>`:''}</div>`:''}
           ${renderMarketplaceLinks(urls,c)}
+          <button class="deep-dive-btn" onclick="generateAlternative('${esc(car.make)}','${esc(car.model)}')" style="border-color:${c};color:${c}">↓ Deep dive on the ${esc(car.make)} ${esc(car.model)}</button>
         </div>
       </div>`;
   }).join('');
