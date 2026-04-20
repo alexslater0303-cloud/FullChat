@@ -336,12 +336,11 @@ CRITICAL — YEAR & GENERATION SPECIFICITY:
 - For NEW PRICE stat: if the car is discontinued (yearTo < 2025), label it "Launch price" or "Was new from" — never "New price" for a car no longer on sale. If the car is still on sale, use "New price"
 
 CRITICAL — TECHNICAL SPECIFICATION ACCURACY:
-- If the prompt specifies a drivetrain (AWD, 4WD, 4x4, all-wheel drive, RWD, rear-wheel drive, FWD, front-wheel drive), ONLY include cars that genuinely have that exact drivetrain configuration. An SUV body style does NOT imply AWD — verify the actual driven wheels for each specific generation.
-- If the prompt specifies a fuel type (EV, electric, hybrid, PHEV, petrol, diesel, hydrogen), every single car must match exactly. Do not include a petrol car in an EV list.
+- If the prompt specifies a drivetrain (AWD, 4WD, 4x4, all-wheel drive, RWD, rear-wheel drive, FWD, front-wheel drive), ONLY include cars that genuinely have that exact drivetrain as a STANDARD feature on the specific variant you are naming. An SUV body style does NOT mean AWD — e.g. the Hyundai Kona Electric is FWD only, the Renault Scenic E-Tech is FWD only. You must be 100% certain the exact model and generation you name comes with that drivetrain.
+- If the prompt specifies a fuel type (EV, electric, hybrid, PHEV, petrol, diesel), every single car must match exactly. Do not include a petrol car in an EV list, do not include a hybrid in an EV list.
 - If the prompt specifies a body style (hot hatch, estate, coupe, saloon, convertible, pickup, van), only include genuine examples of that body style.
-- If the prompt specifies a performance category (hot hatch, sports car, supercar, track car), do not include base or standard variants — use only the relevant performance variant.
-- Before including any car, mentally verify it meets ALL technical requirements stated in the prompt. If a car doesn't genuinely match, replace it with one that does.
-- When in doubt about a spec, choose a different car you are certain about rather than risk including an incorrect one.
+- If the prompt specifies a performance category (hot hatch, sports car, supercar), do not include base or standard variants — use only the relevant performance variant.
+- CERTAINTY RULE: If you are not 100% certain a car has the required specification, do NOT include it. Pick a different car you ARE certain about. A shorter list of accurate cars is infinitely better than a longer list with one hallucinated spec.
 
 For quote fields: real attributed quotes from known automotive journalists (Evo, Top Gear, Autocar, Chris Harris, Henry Catchpole). Put attribution in "quoteAttribution".
 
@@ -380,49 +379,98 @@ ${schema}`
       article.cars = article.cars.map(addMarketplaceUrls);
     }
 
-    // Silent fact-check
-    try {
-      const carsToCheck = article.articleType === 'single'
-        ? [article.car]
-        : (article.cars || []);
+    // ── Step 3: Independent Gemini fact-check ────────────────────────────────
+    const GEMINI_KEY = process.env.GEMINI_API_KEY;
+    if (GEMINI_KEY) {
+      try {
+        const carsToCheck = article.articleType === 'single'
+          ? [article.car]
+          : (article.cars || []);
 
-      const fcRes = await anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514', max_tokens: 600,
-        system: 'You are an automotive fact-checker. Return ONLY valid JSON, no markdown.',
-        messages: [{
-          role: 'user',
-          content: `Check for factual errors (wrong specs, implausible prices). Silently correct. If all correct return {"correctedCars":null}.
+        const carSummary = carsToCheck.map((c, i) => (
+          `Car ${i+1}: ${c.make} ${c.model} (${c.generation||''} ${c.yearFrom||''}–${c.yearTo||''})
+  Key claims: ${[c.stat1_val&&c.stat1_label?`${c.stat1_val} ${c.stat1_label}`:'', c.stat2_val&&c.stat2_label?`${c.stat2_val} ${c.stat2_label}`:'', c.stat3_val&&c.stat3_label?`${c.stat3_val} ${c.stat3_label}`:''].filter(Boolean).join(', ')}
+  Drivetrain claims in article body: ${(c.copy||'').match(/\b(AWD|4WD|4x4|all.wheel|RWD|FWD|front.wheel|rear.wheel|electric|EV|hybrid|PHEV|petrol|diesel)\b/gi)?.join(', ')||'none stated'}`
+        )).join('\n\n');
 
-Cars: ${JSON.stringify(carsToCheck.map(c=>({
-  make:c.make, model:c.model,
-  stat1:`${c.stat1_val} ${c.stat1_label}`,
-  stat2:`${c.stat2_val} ${c.stat2_label}`,
-  stat3:`${c.stat3_val} ${c.stat3_label}`,
-  stat4:`${c.stat4_val} ${c.stat4_label}`,
-  stat5:`${c.stat5_val} ${c.stat5_label}`,
-  stat6:`${c.stat6_val} ${c.stat6_label}`,
-  stat7:`${c.stat7_val} ${c.stat7_label}`,
-  stat8:`${c.stat8_val} ${c.stat8_label}`,
-  stat9:`${c.stat9_val} ${c.stat9_label}`
-})))}
+        const fcPrompt = `You are an independent automotive fact-checker with access to real technical data. The user asked for: "${prompt}"
 
-Return: {"correctedCars":[...full corrected cars...] or null}`
-        }]
-      });
+The following cars have been selected for an article. For EACH car, verify using your knowledge:
+1. Does this car actually exist in the stated generation/year range?
+2. Does it genuinely have the drivetrain/powertrain implied by the prompt AND any claims in the article body? (e.g. if prompt asks for AWD, does this specific model actually offer AWD?)
+3. Are the key stats plausible for this specific model?
 
-      const fc = parseJSON(fcRes.content?.find(b=>b.type==='text')?.text||'{}');
-      if (fc?.correctedCars?.length) {
-        if (article.articleType === 'single') {
-          article.car = { ...article.car, ...fc.correctedCars[0] };
-        } else {
-          article.cars = article.cars.map((car,i) => {
-            const fix = fc.correctedCars[i];
-            return fix ? {...car,...fix} : car;
+${carSummary}
+
+Respond ONLY with valid JSON in this exact format:
+{
+  "passedAll": true/false,
+  "errors": [
+    { "carIndex": 0, "issue": "Specific factual error description — e.g. Hyundai Kona Electric does not offer AWD in any variant, it is FWD only" }
+  ]
+}
+If all cars pass, return {"passedAll": true, "errors": []}`;
+
+        const fcGemini = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contents: [{ parts: [{ text: fcPrompt }] }] })
+          }
+        );
+        const fcGeminiData = await fcGemini.json();
+        const fcRaw = fcGeminiData.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+        const fcResult = parseJSON(fcRaw);
+
+        if (fcResult && !fcResult.passedAll && fcResult.errors?.length) {
+          console.log('Fact-check found errors:', JSON.stringify(fcResult.errors));
+          send('step', { step:'fact', state:'active', status:`Fixing ${fcResult.errors.length} error(s)...` });
+
+          // Build error summary for Claude rewrite
+          const errorList = fcResult.errors.map(e =>
+            `- Car ${e.carIndex + 1} (${carsToCheck[e.carIndex]?.make} ${carsToCheck[e.carIndex]?.model}): ${e.issue}`
+          ).join('\n');
+
+          // Ask Claude to rewrite the article fixing the specific errors
+          const rewriteRes = await anthropic.messages.create({
+            model: 'claude-sonnet-4-20250514',
+            max_tokens: 4000,
+            system: p.systemPrompt,
+            messages: [{
+              role: 'user',
+              content: `An independent fact-checker has found the following errors in this article:
+
+${errorList}
+
+Here is the current article JSON:
+${JSON.stringify(article)}
+
+Rewrite the ENTIRE article JSON, fixing ONLY the flagged errors. For each flagged car:
+- Replace it with a different car that ACTUALLY has the required specification (e.g. if AWD is required, choose a car that genuinely offers AWD as standard)
+- Keep all other cars and content unchanged
+- Return ONLY valid JSON with the same schema as the input
+
+${schema}`
+            }]
           });
+
+          const rewriteText = rewriteRes.content?.find(b => b.type === 'text')?.text || '';
+          const rewrittenArticle = parseJSON(rewriteText);
+          if (rewrittenArticle) {
+            // Re-add marketplace URLs to any replaced cars
+            if (rewrittenArticle.articleType === 'single' && rewrittenArticle.car) {
+              rewrittenArticle.car = addMarketplaceUrls(rewrittenArticle.car);
+            } else if (rewrittenArticle.cars) {
+              rewrittenArticle.cars = rewrittenArticle.cars.map(addMarketplaceUrls);
+            }
+            article = rewrittenArticle;
+            console.log('Article rewritten after fact-check corrections');
+          }
         }
+      } catch(fcErr) {
+        console.warn('Fact-check skipped:', fcErr.message);
       }
-    } catch(fcErr) {
-      console.warn('Fact-check skipped:', fcErr.message);
     }
 
     send('step', { step:'fact', state:'done', status:'All claims verified ✓' });
