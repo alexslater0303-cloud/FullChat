@@ -1,12 +1,12 @@
 module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method \!== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const { cars } = req.body || {};
-  if (\!cars || \!Array.isArray(cars)) return res.status(400).json({ error: 'cars array required' });
+  if (!cars || !Array.isArray(cars)) return res.status(400).json({ error: 'cars array required' });
 
   const KEY = process.env.YOUTUBE_API_KEY;
-  if (\!KEY) return res.status(500).json({ error: 'YOUTUBE_API_KEY not configured' });
+  if (!KEY) return res.status(500).json({ error: 'YOUTUBE_API_KEY not configured' });
 
   try {
     const results = await Promise.all(
@@ -21,7 +21,7 @@ module.exports = async (req, res) => {
         );
         const d = await r.json();
         const item = d.items?.[0];
-        if (\!item) return { make, model, video: null };
+        if (!item) return { make, model, video: null };
         return {
           make, model,
           video: {
