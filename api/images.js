@@ -1,12 +1,12 @@
 module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  if (req.method \!== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const { cars } = req.body || {};
-  if (!cars || !Array.isArray(cars)) return res.status(400).json({ error: 'cars array required' });
+  if (\!cars || \!Array.isArray(cars)) return res.status(400).json({ error: 'cars array required' });
 
   const SERPER_KEY = process.env.SERPER_API_KEY;
-  if (!SERPER_KEY) return res.status(200).json({ results: cars.slice(0, 4).map(({ make, model }) => ({ make, model, photos: [] })) });
+  if (\!SERPER_KEY) return res.status(200).json({ results: cars.slice(0, 10).map(({ make, model }) => ({ make, model, photos: [] })) });
 
   const searchImages = async (make, model, yearFrom, generation) => {
     const genStr  = generation && generation.length < 20 ? generation : '';
@@ -24,7 +24,7 @@ module.exports = async (req, res) => {
       });
       const d = await r.json();
       console.log('Serper images:', JSON.stringify({ query, count: d.images?.length, error: d.message }));
-      return (d.images || []).slice(0, 4).map(img => ({
+      return (d.images || []).slice(0, 10).map(img => ({
         url:          img.imageUrl,
         photographer: img.source,
       }));
@@ -36,7 +36,7 @@ module.exports = async (req, res) => {
 
   try {
     const results = await Promise.all(
-      cars.slice(0, 4).map(async ({ make, model, yearFrom, generation }) => {
+      cars.slice(0, 10).map(async ({ make, model, yearFrom, generation }) => {
         const photos = await searchImages(make, model, yearFrom, generation);
         return { make, model, photos };
       })
