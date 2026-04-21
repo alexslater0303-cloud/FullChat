@@ -106,8 +106,15 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 #s-article{background:#F5F0E8;}
 .anav{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:2px solid #1A1A1A;position:sticky;top:0;background:#F5F0E8;z-index:10;}
 .anav-logo{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:22px;letter-spacing:-0.5px;color:#1A1A1A;}
+.anav-right{display:flex;align-items:center;gap:8px;}
 .nbtn{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:11px;letter-spacing:3px;text-transform:uppercase;padding:8px 14px;border-radius:2px;background:transparent;cursor:pointer;transition:all 0.15s;}
 .nbtn:hover{background:#1A1A1A!important;color:#F5F0E8!important;border-color:#1A1A1A!important;}
+.share-btn{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:11px;letter-spacing:2px;text-transform:uppercase;padding:8px 14px;border-radius:2px;border:2px solid #1A1A1A;background:transparent;cursor:pointer;transition:all 0.15s;color:#1A1A1A;}
+.share-btn:hover{background:#1A1A1A;color:#F5F0E8;}
+.share-btn.copied{background:var(--ac,#C8102E);border-color:var(--ac,#C8102E);color:#fff;}
+.share-banner{background:#1A1A1A;color:#F5F0E8;display:flex;align-items:center;justify-content:space-between;padding:10px 20px;font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:1px;}
+.share-banner-cta{color:var(--ac,#C8102E);font-weight:900;letter-spacing:2px;text-decoration:none;text-transform:uppercase;}
+.share-banner-cta:hover{text-decoration:underline;}
 
 /* Hero with CSS art backgrounds */
 .hero{position:relative;min-height:340px;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;}
@@ -427,9 +434,16 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 
 <!-- ARTICLE -->
 <div id="s-article" class="screen">
+  <div class="share-banner" id="share-banner" style="display:none">
+    <span>📖 You're viewing a shared FullChat article</span>
+    <a href="/" class="share-banner-cta">Try FullChat →</a>
+  </div>
   <nav class="anav">
     <div class="anav-logo">FULL<span id="a-span">CHAT</span></div>
-    <button class="nbtn" id="a-nbtn" onclick="go('s-prompt')">← NEW BRIEF</button>
+    <div class="anav-right">
+      <button class="share-btn" id="share-btn" onclick="shareArticle()" title="Share this article">⬆ SHARE</button>
+      <button class="nbtn" id="a-nbtn" onclick="go('s-prompt')">← NEW BRIEF</button>
+    </div>
   </nav>
   <div class="hero">
     <div class="hero-art" id="a-heroart"></div>
@@ -723,6 +737,9 @@ document.addEventListener('DOMContentLoaded', () => {
   buildPersonaList(); buildChips(); buildFuChips();
   document.getElementById('inv-input').addEventListener('keydown', e=>{if(e.key==='Enter')submitInvite();});
   document.getElementById('fu-input').addEventListener('keydown', e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();askFollowUp();}});
+  // Check for shared article link
+  const shareId = new URLSearchParams(window.location.search).get('share');
+  if (shareId) { loadSharedArticle(shareId); return; }
   const saved = sessionStorage.getItem('fc_code');
   if (saved) { inviteCode=saved; testerName=sessionStorage.getItem('fc_name')||''; refreshGreeting(); go('s-splash'); }
   drawRevCounter(0,'idle','1ST');
@@ -1306,6 +1323,67 @@ function galUpdate(i){
 function generateAlternative(make, model) {
   document.getElementById('p-input').value=`Deep dive on the ${make} ${model}`;
   startPipeline(`Deep dive on the ${make} ${model}`);
+}
+
+// ── SHARE ─────────────────────────────────────────────────────────────────────
+async function shareArticle() {
+  const btn = document.getElementById('share-btn');
+  if (!finalArticle || btn.disabled) return;
+  btn.disabled = true;
+  btn.textContent = '⬆ SAVING…';
+  try {
+    const r = await fetch('/api/share', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        inviteCode,
+        persona,
+        prompt: document.getElementById('p-input')?.value || '',
+        depth,
+        articleType: finalArticle.articleType || articleIntent,
+        article: finalArticle,
+      })
+    });
+    const { id, error } = await r.json();
+    if (error || !id) throw new Error(error || 'no id');
+    const url = window.location.origin + '/?share=' + id;
+    await navigator.clipboard.writeText(url);
+    btn.textContent = '✓ LINK COPIED';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = '⬆ SHARE';
+      btn.classList.remove('copied');
+      btn.disabled = false;
+    }, 3000);
+  } catch(e) {
+    console.error('Share failed:', e.message);
+    btn.textContent = '⬆ SHARE';
+    btn.disabled = false;
+  }
+}
+
+async function loadSharedArticle(id) {
+  try {
+    const r = await fetch('/api/share?id=' + id);
+    if (!r.ok) throw new Error('not found');
+    const data = await r.json();
+    finalArticle = data.article;
+    articleIntent = data.article_type || 'comparison';
+    persona = data.persona || 'provocateur';
+    depth = data.depth || 1;
+    const p = PERSONAS[persona] || PERSONAS.provocateur;
+    applyColor(p.color);
+    renderArticle(finalArticle, articleIntent);
+    document.getElementById('share-banner').style.display = 'flex';
+    document.getElementById('share-btn').style.display = 'none';
+    document.getElementById('a-nbtn').style.display = 'none';
+    document.getElementById('feedback-bar').style.display = 'none';
+    document.querySelector('.fu-section').style.display = 'none';
+    go('s-article');
+  } catch(e) {
+    console.error('Failed to load shared article:', e.message);
+    go('s-splash');
+  }
 }
 
 // ── FEEDBACK ──────────────────────────────────────────────────────────────────
