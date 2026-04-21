@@ -1125,7 +1125,7 @@ async function startPipeline(customPrompt) {
 
     if(!res.ok){
       const e=await res.json().catch(()=>({}));
-      document.getElementById('rev-status').textContent=e.error||`Error ${res.status}`;
+      document.getElementById('g-mode').textContent=e.error||`Error ${res.status}`;
       await delay(3000); resetSurpriseBtn(); go('s-prompt'); return;
     }
 
@@ -1162,7 +1162,7 @@ async function startPipeline(customPrompt) {
 
             if(currentEvent==='error'||data.error){
               stopTicker();
-              document.getElementById('rev-status').textContent=data.message||data.error||'Error';
+              document.getElementById('g-mode').textContent=data.message||data.error||'Error';
               await delay(3000); resetSurpriseBtn(); go('s-prompt'); return;
             }
 
@@ -1183,7 +1183,7 @@ async function startPipeline(customPrompt) {
     if(streamDone) await fetchMediaAndReveal(promptVal);
   }catch(err){
     console.error('Stream error:',err);
-    document.getElementById('rev-status').textContent=err.message||'Connection failed';
+    document.getElementById('g-mode').textContent=err.message||'Connection failed';
     await delay(3000); resetSurpriseBtn(); go('s-prompt');
   }
 }
