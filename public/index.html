@@ -1178,6 +1178,7 @@ function renderInterestingMentions(a, c) {
         <div class="imention-card-body">
           ${m.whyInteresting ? `<div class="imention-why">${esc(m.whyInteresting)}</div>` : ''}
           ${m.importNote ? `<div class="imention-note">${esc(m.importNote)}</div>` : ''}
+          <button class="deep-dive-btn" onclick="generateAlternative('${esc(m.make)}','${esc(m.model)}')" style="background:${c};margin-top:12px">↓ DEEP DIVE · ${esc(m.make).toUpperCase()} ${esc(m.model).toUpperCase()}</button>
         </div>
       </div>`;
   }).join('');
