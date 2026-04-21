@@ -583,11 +583,11 @@ const SUGGESTIONS = ['Best hot hatches under £15k','Best used sports cars under
 const FU_CHIPS = ['Which holds its value best?','Any to avoid completely?','What would you add to this list?','Which is most fun to drive?'];
 const DEPTH_LABELS = ['Quick Take','Full Feature','Deep Dive'];
 const DEPTH_DESCS  = ['Fast read, punchy verdict','The full article experience','Maximum depth & detail'];
+// 3 server-driven steps (research/write/fact) + 4TH & 5TH are client-side visual gears
 const STEP_DEFS = [
-  {id:'research',gear:'1ST',name:'Live Research',    status:'Searching live market data...'},
-  {id:'write',   gear:'2ND',name:'Writing',          status:'Streaming article...'},
-  {id:'fact',    gear:'3RD',name:'Fact Check',       status:'Verifying claims...'},
-  {id:'images',  gear:'4TH',name:'Media',            status:'Fetching photos & video...'}
+  {id:'research',gear:'1ST',name:'Live Research', status:'Searching live market data...'},
+  {id:'write',   gear:'2ND',name:'Writing',       status:'Streaming article...'},
+  {id:'fact',    gear:'3RD',name:'Fact Check',    status:'Verifying claims...'},
 ];
 
 const TICKER_MSGS = {
@@ -794,7 +794,7 @@ async function shiftToGear(gear, stepName, tickerKey) {
   await new Promise(r => revSweep(100, 12, 320, r));
   startTicker(tickerKey || 'reveal');
   _revOscillating = true;
-  revOscillateLoop();
+  revStartSweep();
 }
 
 // Draw the rev counter SVG
@@ -1139,11 +1139,11 @@ async function fetchMediaAndReveal(prompt) {
     : (finalArticle.cars||[]);
 
   // 5TH gear — media fetch
-  await shiftToGear('5TH', 'Media', 'images');
+  await shiftToGear('4TH', 'Media', 'images');
   await fetchMedia(cars);
 
   // 6TH gear — final assembly
-  await shiftToGear('6TH', 'Final Assembly', 'reveal');
+  await shiftToGear('5TH', 'Final Assembly', 'reveal');
   await delay(800);
 
   stopTicker();
