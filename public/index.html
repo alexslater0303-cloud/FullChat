@@ -161,14 +161,12 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 .share-btn{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:11px;letter-spacing:3px;text-transform:uppercase;padding:8px 14px;border-radius:2px;border:1.5px solid currentColor;background:transparent;cursor:pointer;transition:all 0.15s;}
 .share-btn:hover{background:#1A1A1A!important;color:#F5F0E8!important;border-color:#1A1A1A!important;}
 .share-btn.copied{background:var(--ac,#C8102E)!important;border-color:var(--ac,#C8102E)!important;color:#fff!important;}
-/* Share panel */
-.share-wrap{position:relative;}
-.share-panel{position:absolute;top:calc(100% + 8px);right:0;background:#1A1A1A;border-radius:4px;overflow:hidden;min-width:180px;box-shadow:0 8px 24px rgba(0,0,0,0.25);opacity:0;transform:translateY(-6px);pointer-events:none;transition:opacity 0.15s,transform 0.15s;z-index:200;}
-.share-panel.open{opacity:1;transform:translateY(0);pointer-events:all;}
-.share-opt{display:flex;align-items:center;gap:10px;width:100%;padding:13px 16px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:11px;letter-spacing:2.5px;text-transform:uppercase;color:#F5F0E8;background:none;border:none;cursor:pointer;text-align:left;transition:background 0.12s;}
-.share-opt:hover{background:rgba(255,255,255,0.1);}
-.share-opt:not(:last-child){border-bottom:1px solid rgba(255,255,255,0.08);}
-.share-opt.busy{opacity:0.5;pointer-events:none;}
+.share-wrap{position:relative;display:inline-block;}
+.share-panel{display:none;position:absolute;top:calc(100% + 6px);right:0;background:#1A1A1A;border-radius:4px;overflow:hidden;min-width:160px;box-shadow:0 4px 16px rgba(0,0,0,0.25);z-index:100;}
+.share-panel.open{display:block;}
+.share-opt{display:block;width:100%;text-align:left;padding:11px 16px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#F5F0E8;background:transparent;border:none;cursor:pointer;transition:background 0.12s;}
+.share-opt:hover{background:rgba(255,255,255,0.08);}
+.share-opt.busy{opacity:0.5;cursor:default;}
 .share-banner{background:#1A1A1A;color:#F5F0E8;display:flex;align-items:center;justify-content:space-between;padding:10px 20px;font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:1px;}
 .share-banner-cta{color:var(--ac,#C8102E);font-weight:900;letter-spacing:2px;text-decoration:none;text-transform:uppercase;}
 .share-banner-cta:hover{text-decoration:underline;}
@@ -1584,40 +1582,192 @@ function generateAlternative(make, model) {
 }
 
 // ── SHARE ─────────────────────────────────────────────────────────────────────
-function toggleSharePanel() {
-  if (!finalArticle) return;
-  const panel = document.getElementById('share-panel');
-  const isOpen = panel.classList.contains('open');
-  panel.classList.toggle('open', !isOpen);
-  if (!isOpen) {
-    // Close on outside click
-    setTimeout(() => {
-      const close = (e) => {
-        if (!document.getElementById('share-wrap')?.contains(e.target)) {
-          panel.classList.remove('open');
-          document.removeEventListener('click', close);
-        }
-      };
-      document.addEventListener('click', close);
-    }, 0);
-  }
-}
-
-async function copyShareLink() {
-  const panel = document.getElementById('share-panel');
-  const opt = document.getElementById('sopt-link');
-  panel.classList.remove('open');
-  if (!finalArticle || opt.classList.contains('busy')) return;
-  opt.classList.add('busy');
-  opt.textContent = '🔗 Saving…';
+async function shareArticle() {
+  const btn = document.getElementById('share-btn');
+  if (!finalArticle || btn.disabled) return;
+  btn.disabled = true;
+  btn.textContent = '⬆ SAVING…';
   try {
-    let shareId = currentHistoryId;
+    let shareId = currentHistoryId; // reuse auto-saved history entry if available
     if (!shareId) {
+      // Fallback: create new share entry
       const r = await fetch('/api/share', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          inviteCode, persona,
+          inviteCode,
+          persona,
           prompt: document.getElementById('p-input')?.value || '',
           depth,
-          articleType: f
+          articleType: finalArticle.articleType || articleIntent,
+          article: finalArticle,
+        })
+      });
+      const j = await r.json();
+      if (j.error || !j.id) throw new Error(j.error || 'no id');
+      shareId = j.id;
+    }
+    const url = window.location.origin + '/?share=' + shareId;
+    await navigator.clipboard.writeText(url);
+    btn.textContent = '✓ LINK COPIED';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = '⬆ SHARE';
+      btn.classList.remove('copied');
+      btn.disabled = false;
+    }, 3000);
+  } catch(e) {
+    console.error('Share failed:', e.message);
+    btn.textContent = '⬆ SHARE';
+    btn.disabled = false;
+  }
+}
+
+async function loadSharedArticle(id) {
+  try {
+    const r = await fetch('/api/share?id=' + id);
+    if (!r.ok) throw new Error('not found');
+    const data = await r.json();
+    finalArticle = data.article;
+    articleIntent = data.article_type || 'comparison';
+    persona = data.persona || 'provocateur';
+    depth = data.depth || 1;
+    const p = PERSONAS[persona] || PERSONAS.provocateur;
+    applyColor(p.color);
+    // Render immediately, then fetch media and re-render with images/video
+    renderArticle(finalArticle, articleIntent);
+    document.getElementById('share-banner').style.display = 'flex';
+    document.getElementById('share-btn').style.display = 'none';
+    document.getElementById('a-nbtn').style.display = 'none';
+    document.getElementById('feedback-bar').style.display = 'none';
+    document.querySelector('.fu-section').style.display = 'none';
+    go('s-article');
+    // Fetch media in background, re-render once loaded
+    const cars = finalArticle.articleType === 'single'
+      ? [finalArticle.car]
+      : (finalArticle.cars || []);
+    fetchMedia(cars).then(() => renderArticle(finalArticle, articleIntent));
+  } catch(e) {
+    console.error('Failed to load shared article:', e.message);
+    go('s-splash');
+  }
+}
+
+// ── FEEDBACK ──────────────────────────────────────────────────────────────────
+async function submitFeedback(rating) {
+  const upBtn = document.getElementById('fb-up');
+  const downBtn = document.getElementById('fb-down');
+  const done = document.getElementById('feedback-done');
+  if (!upBtn || upBtn.disabled) return;
+  upBtn.disabled = true; downBtn.disabled = true;
+  const voted = rating === 'up' ? upBtn : downBtn;
+  voted.classList.add('voted');
+  done.style.display = 'block';
+  try {
+    await fetch('/api/feedback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        inviteCode,
+        persona,
+        prompt: document.getElementById('p-input')?.value || '',
+        depth,
+        headline: finalArticle?.headline || '',
+        articleType: finalArticle?.articleType || articleIntent,
+        rating,
+      })
+    });
+  } catch(e) { console.warn('Feedback send failed:', e.message); }
+}
+function resetFeedback() {
+  const upBtn = document.getElementById('fb-up');
+  const downBtn = document.getElementById('fb-down');
+  const done = document.getElementById('feedback-done');
+  if (upBtn) { upBtn.disabled = false; upBtn.classList.remove('voted'); }
+  if (downBtn) { downBtn.disabled = false; downBtn.classList.remove('voted'); }
+  if (done) done.style.display = 'none';
+}
+
+// ── HISTORY ───────────────────────────────────────────────────────────────────
+async function openHistory() {
+  go('s-history');
+  const wrap = document.getElementById('hist-list-wrap');
+  wrap.innerHTML = '<div class="hist-loading">Loading...</div>';
+  try {
+    const r = await fetch('/api/history?inviteCode=' + encodeURIComponent(inviteCode));
+    if (!r.ok) throw new Error('fetch failed');
+    const { articles } = await r.json();
+    renderHistoryList(articles || []);
+  } catch(e) {
+    wrap.innerHTML = '<div class="hist-empty">Couldn\'t load history</div>';
+  }
+}
+
+function renderHistoryList(articles) {
+  const wrap = document.getElementById('hist-list-wrap');
+  if (!articles.length) {
+    wrap.innerHTML = '<div class="hist-empty">No articles yet — generate your first one!</div>';
+    return;
+  }
+  wrap.innerHTML = '<div class="hist-list">' + articles.map(a => {
+    const p = PERSONAS[a.persona] || PERSONAS.provocateur;
+    const date = new Date(a.created_at).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+    const typeLabel = a.article_type === 'single' ? 'Deep Dive' : 'Comparison';
+    return `<div class="hist-card" onclick="loadHistoryArticle('${a.id}')">
+      <div class="hist-card-meta">
+        <span class="hist-persona-dot" style="background:${p.color}"></span>
+        <span class="hist-persona-lbl" style="color:${p.color}">${p.label}</span>
+        <span class="hist-type-badge" style="color:${p.color}">${typeLabel}</span>
+        <span class="hist-date">${date}</span>
+      </div>
+      <div class="hist-headline">${a.headline || a.prompt}</div>
+      <div class="hist-deck">${a.deck || ''}</div>
+    </div>`;
+  }).join('') + '</div>';
+}
+
+async function loadHistoryArticle(id) {
+  const wrap = document.getElementById('hist-list-wrap');
+  wrap.innerHTML = '<div class="hist-loading">Loading article...</div>';
+  try {
+    const r = await fetch('/api/share?id=' + id);
+    if (!r.ok) throw new Error('not found');
+    const data = await r.json();
+    if (!data.article) throw new Error('no article');
+
+    // Restore state and render
+    finalArticle = data.article;
+    articleIntent = data.intent || (data.article_type === 'single' ? 'single' : 'comparison');
+    persona = data.persona || persona;
+    applyColor(C());
+    currentHistoryId = id;
+    galleries = {}; ytVideos = {}; ytExpanded = {};
+    renderArticle(finalArticle, articleIntent);
+    resetFeedback();
+
+    // Fetch media in background
+    const cars = finalArticle.articleType === 'single' ? [finalArticle.car] : (finalArticle.cars || []);
+    fetchMedia(cars).then(() => renderArticle(finalArticle, articleIntent));
+
+    go('s-article');
+  } catch(e) {
+    wrap.innerHTML = '<div class="hist-empty">Couldn\'t load this article</div>';
+  }
+}
+
+// ── FOLLOW-UP ─────────────────────────────────────────────────────────────────
+async function askFollowUp(){
+  const input=document.getElementById('fu-input');
+  const q=input.value.trim();
+  if(!q||fuBusy||!finalArticle)return;
+  fuBusy=true;input.value='';
+  document.getElementById('fu-send').disabled=true;
+  const p=P(),c=C();
+  const thread=document.getElementById('convo');
+  const cars=(finalArticle.articleType==='single'?[finalArticle.car]:(finalArticle.cars||[])).map(c=>`${c.make} ${c.model}`).join(', ');
+  thread.insertAdjacentHTML('beforeend',`<div class="msg-u"><div class="msg-ubub" style="background:${c}">${esc(q)}</div></div>`);
+  document.getElementById('thinking').style.display='block';
+  thread.scrollIntoView({behavior:'smooth',block:'end'});
+  const ctx=`You wrote:\nHEADLINE:${finalArticle.headline}\nCARS:${cars}\n\nAnswer in character as ${p.name}. Prose, no JSON, 2-4 sentences.`;
+  const history=convo.map(m=>({role:m.role,content:m.content}));
+  t
