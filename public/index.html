@@ -809,18 +809,21 @@ function selectPersona(key) {
 }
 function setPrompt(t){document.getElementById('p-input').value=t;}
 function surpriseMe() {
-  // Collect text from whichever chips are currently rendered
-  const chipEls = document.querySelectorAll('#chips .chip');
+  // Exclude the surprise button itself from the pool
+  const chipEls = document.querySelectorAll('#chips .chip:not(.surprise-btn)');
   const pool = chipEls.length
     ? Array.from(chipEls).map(el => el.textContent.trim())
     : SUGGESTIONS;
   const pick = pool[Math.floor(Math.random() * pool.length)];
   document.getElementById('p-input').value = pick;
-  // Brief flash on the button then fire
   const btn = document.getElementById('surprise-btn');
-  btn.textContent = '✓ ' + pick.toUpperCase().slice(0, 22) + (pick.length > 22 ? '…' : '');
+  btn.textContent = '⚡ ' + pick.slice(0, 22) + (pick.length > 22 ? '…' : '');
   btn.disabled = true;
   setTimeout(() => { startPipeline(); }, 350);
+}
+function resetSurpriseBtn() {
+  const btn = document.getElementById('surprise-btn');
+  if (btn) { btn.textContent = '⚡ Surprise me'; btn.disabled = false; }
 }
 function setDepth(v) {
   depth=v; document.getElementById('d-slider').value=v;
@@ -870,7 +873,7 @@ async function startPipeline(customPrompt) {
     if(!res.ok){
       const e=await res.json().catch(()=>({}));
       document.getElementById('rev-status').textContent=e.error||`Error ${res.status}`;
-      await delay(3000); go('s-prompt'); return;
+      await delay(3000); resetSurpriseBtn(); go('s-prompt'); return;
     }
 
     const reader=res.body.getReader(), decoder=new TextDecoder();
@@ -918,7 +921,7 @@ async function startPipeline(customPrompt) {
             if(currentEvent==='error'||data.error){
               if(_stepTicker){clearInterval(_stepTicker);_stepTicker=null;}
               document.getElementById('rev-status').textContent=data.message||data.error||'Error';
-              await delay(3000); go('s-prompt'); return;
+              await delay(3000); resetSurpriseBtn(); go('s-prompt'); return;
             }
 
             if(currentEvent==='done'){
@@ -933,7 +936,7 @@ async function startPipeline(customPrompt) {
   }catch(err){
     console.error('Stream error:',err);
     document.getElementById('rev-status').textContent=err.message||'Connection failed';
-    await delay(3000); go('s-prompt');
+    await delay(3000); resetSurpriseBtn(); go('s-prompt');
   }
 }
 
