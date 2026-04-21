@@ -68,8 +68,10 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 .depth-desc{font-size:12px;color:#666;margin-top:6px;}
 .slbl{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;letter-spacing:4px;text-transform:uppercase;color:#888;margin-bottom:10px;}
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:22px;}
-.chip{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;padding:8px 14px;border:1.5px solid #1A1A1A;border-radius:2px;cursor:pointer;color:#1A1A1A;background:transparent;text-transform:uppercase;transition:all 0.15s;}
+.chip{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;padding:8px 14px;border:1.5px solid #1A1A1A;border-radius:2px;cursor:pointer;color:#1A1A1A;background:transparent;text-transform:uppercase;transition:all 0.15s;letter-spacing:0.5px;}
 .chip:hover{background:#1A1A1A;color:#F5F0E8;}
+.chip-shimmer{width:110px;height:34px;border-radius:2px;background:linear-gradient(90deg,#E8E3DC 25%,#D8D3CB 50%,#E8E3DC 75%);background-size:200% 100%;animation:shimmer 1.2s infinite;}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
 .gobtn{width:100%;color:#F5F0E8;border:none;border-radius:4px;padding:18px;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:18px;letter-spacing:3px;text-transform:uppercase;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:opacity 0.2s,transform 0.1s;}
 .gobtn:hover{opacity:0.9;transform:translateY(-1px);}
 .pipe-lbl{text-align:center;margin-top:12px;font-size:12px;color:#888;}
@@ -721,8 +723,21 @@ function buildPersonaList() {
       <span class="parr" style="color:${p.color}">→</span>
     </div>`).join('');
 }
-function buildChips() {
-  document.getElementById('chips').innerHTML = SUGGESTIONS.map(s=>`<div class="chip" onclick="setPrompt('${s}')">${s}</div>`).join('');
+function renderChips(list) {
+  document.getElementById('chips').innerHTML = list.map(s=>`<div class="chip" onclick="setPrompt('${s.replace(/'/g,"\\'")}')">${s}</div>`).join('');
+}
+async function buildChips() {
+  // Show shimmer placeholders while fetching
+  document.getElementById('chips').innerHTML = Array(6).fill(`<div class="chip-shimmer"></div>`).join('');
+  try {
+    const r = await fetch('/api/chips');
+    if (!r.ok) throw new Error('non-200');
+    const { chips } = await r.json();
+    if (Array.isArray(chips) && chips.length) { renderChips(chips); return; }
+    throw new Error('empty');
+  } catch {
+    renderChips(SUGGESTIONS);
+  }
 }
 function buildFuChips() {
   document.getElementById('fu-chips').innerHTML = FU_CHIPS.map(q=>`
