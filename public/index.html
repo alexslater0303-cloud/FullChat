@@ -43,6 +43,32 @@ body{font-family:'Barlow',sans-serif;background:#F5F0E8;color:#1A1A1A;min-height
 .pdesc{font-size:11.5px;color:#888;line-height:1.4;}
 .parr{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:20px;margin-left:auto;flex-shrink:0;transition:transform 0.15s ease;}
 
+/* HISTORY BUTTON on splash */
+.hist-btn{width:100%;max-width:440px;margin-top:28px;padding:16px;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:14px;letter-spacing:4px;text-transform:uppercase;border:2px solid #1A1A1A;border-radius:4px;background:transparent;color:#1A1A1A;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:background 0.15s,color 0.15s;animation:fadeUp 0.6s 0.5s ease both;opacity:0;}
+.hist-btn:hover{background:#1A1A1A;color:#F5F0E8;}
+.hist-btn svg{flex-shrink:0;}
+
+/* HISTORY SCREEN */
+#s-history{background:#F5F0E8;}
+.hist-hdr{display:flex;align-items:center;justify-content:space-between;padding:20px 24px 16px;border-bottom:2px solid #1A1A1A;}
+.hist-title{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:28px;letter-spacing:-1px;}
+.hist-back{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;letter-spacing:3px;text-transform:uppercase;padding:7px 12px;border-radius:2px;cursor:pointer;color:#F5F0E8;background:#1A1A1A;transition:opacity 0.2s;}
+.hist-back:hover{opacity:0.75;}
+.hist-body{padding:24px;}
+.hist-empty{text-align:center;padding:60px 0;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:3px;text-transform:uppercase;color:#AAA;}
+.hist-list{display:flex;flex-direction:column;gap:0;}
+.hist-card{padding:18px 0;border-bottom:1.5px solid #D8D3CB;cursor:pointer;transition:padding-left 0.15s;}
+.hist-card:first-child{border-top:1.5px solid #D8D3CB;}
+.hist-card:hover{padding-left:6px;}
+.hist-card-meta{display:flex;align-items:center;gap:10px;margin-bottom:6px;}
+.hist-persona-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.hist-persona-lbl{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#AAA;}
+.hist-date{font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:1px;color:#BBB;margin-left:auto;}
+.hist-headline{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:18px;line-height:1.15;color:#1A1A1A;margin-bottom:4px;}
+.hist-deck{font-size:12px;color:#888;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.hist-type-badge{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:9px;letter-spacing:2px;text-transform:uppercase;padding:3px 7px;border-radius:2px;border:1px solid currentColor;}
+.hist-loading{text-align:center;padding:48px 0;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:11px;letter-spacing:4px;text-transform:uppercase;color:#AAA;}
+
 /* PROMPT */
 #s-prompt{background:#F5F0E8;}
 .phdr{display:flex;align-items:center;justify-content:space-between;padding:20px 24px 16px;border-bottom:2px solid #1A1A1A;}
@@ -403,6 +429,21 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
     <div class="splash-logo"><span class="wm">FULL<span id="sp-span">CHAT</span></span><span class="tl">AI-powered motoring journalism</span></div>
     <p class="choose-lbl">Choose your voice</p>
     <div class="persona-list" id="persona-list"></div>
+    <button class="hist-btn" onclick="openHistory()">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="2" rx="1" fill="currentColor"/><rect x="2" y="7" width="9" height="2" rx="1" fill="currentColor"/><rect x="2" y="11" width="6" height="2" rx="1" fill="currentColor"/></svg>
+      MY ARTICLES
+    </button>
+  </div>
+</div>
+
+<!-- HISTORY -->
+<div id="s-history" class="screen">
+  <div class="hist-hdr">
+    <div class="hist-title">MY ARTICLES</div>
+    <div class="hist-back" onclick="go('s-splash')">← BACK</div>
+  </div>
+  <div class="hist-body">
+    <div id="hist-list-wrap"><div class="hist-loading">Loading...</div></div>
   </div>
 </div>
 
@@ -645,6 +686,7 @@ const PSVG = {
 // ── STATE ─────────────────────────────────────────────────────────────────────
 let persona='provocateur', depth=1, inviteCode='', testerName='';
 let finalArticle=null, articleIntent='comparison', convo=[], fuBusy=false;
+let currentHistoryId=null; // set after each generation for share reuse
 let galleries={}, ytVideos={}, ytExpanded={};
 let currentStep=0;
 let _currentDisplayGear = '1ST';
@@ -1049,7 +1091,7 @@ function resetBgDrip() {
 async function startPipeline(customPrompt) {
   const promptVal = customPrompt || document.getElementById('p-input').value.trim();
   if (!promptVal) { document.getElementById('p-input').focus(); return; }
-  finalArticle=null; articleIntent='comparison'; convo=[]; galleries={}; ytVideos={}; ytExpanded={};
+  finalArticle=null; articleIntent='comparison'; convo=[]; galleries={}; ytVideos={}; ytExpanded={}; currentHistoryId=null;
   document.getElementById('convo').innerHTML='';
   buildFuChips();
   applyColor(C());
@@ -1113,6 +1155,8 @@ async function startPipeline(customPrompt) {
             }
 
             if(currentEvent==='done'){
+              // Capture history ID for share reuse
+              if(data.historyId) currentHistoryId=data.historyId;
               // Signal 5TH gear to proceed
               _serverDone=true;
               if(_gearDoneResolve){ _gearDoneResolve(); _gearDoneResolve=null; }
@@ -1532,21 +1576,26 @@ async function shareArticle() {
   btn.disabled = true;
   btn.textContent = '⬆ SAVING…';
   try {
-    const r = await fetch('/api/share', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        inviteCode,
-        persona,
-        prompt: document.getElementById('p-input')?.value || '',
-        depth,
-        articleType: finalArticle.articleType || articleIntent,
-        article: finalArticle,
-      })
-    });
-    const { id, error } = await r.json();
-    if (error || !id) throw new Error(error || 'no id');
-    const url = window.location.origin + '/?share=' + id;
+    let shareId = currentHistoryId; // reuse auto-saved history entry if available
+    if (!shareId) {
+      // Fallback: create new share entry
+      const r = await fetch('/api/share', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          inviteCode,
+          persona,
+          prompt: document.getElementById('p-input')?.value || '',
+          depth,
+          articleType: finalArticle.articleType || articleIntent,
+          article: finalArticle,
+        })
+      });
+      const j = await r.json();
+      if (j.error || !j.id) throw new Error(j.error || 'no id');
+      shareId = j.id;
+    }
+    const url = window.location.origin + '/?share=' + shareId;
     await navigator.clipboard.writeText(url);
     btn.textContent = '✓ LINK COPIED';
     btn.classList.add('copied');
@@ -1625,6 +1674,73 @@ function resetFeedback() {
   if (upBtn) { upBtn.disabled = false; upBtn.classList.remove('voted'); }
   if (downBtn) { downBtn.disabled = false; downBtn.classList.remove('voted'); }
   if (done) done.style.display = 'none';
+}
+
+// ── HISTORY ───────────────────────────────────────────────────────────────────
+async function openHistory() {
+  go('s-history');
+  const wrap = document.getElementById('hist-list-wrap');
+  wrap.innerHTML = '<div class="hist-loading">Loading...</div>';
+  try {
+    const r = await fetch('/api/history?inviteCode=' + encodeURIComponent(inviteCode));
+    if (!r.ok) throw new Error('fetch failed');
+    const { articles } = await r.json();
+    renderHistoryList(articles || []);
+  } catch(e) {
+    wrap.innerHTML = '<div class="hist-empty">Couldn\'t load history</div>';
+  }
+}
+
+function renderHistoryList(articles) {
+  const wrap = document.getElementById('hist-list-wrap');
+  if (!articles.length) {
+    wrap.innerHTML = '<div class="hist-empty">No articles yet — generate your first one!</div>';
+    return;
+  }
+  wrap.innerHTML = '<div class="hist-list">' + articles.map(a => {
+    const p = PERSONAS[a.persona] || PERSONAS.provocateur;
+    const date = new Date(a.created_at).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+    const typeLabel = a.article_type === 'single' ? 'Deep Dive' : 'Comparison';
+    return `<div class="hist-card" onclick="loadHistoryArticle('${a.id}')">
+      <div class="hist-card-meta">
+        <span class="hist-persona-dot" style="background:${p.color}"></span>
+        <span class="hist-persona-lbl" style="color:${p.color}">${p.label}</span>
+        <span class="hist-type-badge" style="color:${p.color}">${typeLabel}</span>
+        <span class="hist-date">${date}</span>
+      </div>
+      <div class="hist-headline">${a.headline || a.prompt}</div>
+      <div class="hist-deck">${a.deck || ''}</div>
+    </div>`;
+  }).join('') + '</div>';
+}
+
+async function loadHistoryArticle(id) {
+  const wrap = document.getElementById('hist-list-wrap');
+  wrap.innerHTML = '<div class="hist-loading">Loading article...</div>';
+  try {
+    const r = await fetch('/api/share?id=' + id);
+    if (!r.ok) throw new Error('not found');
+    const data = await r.json();
+    if (!data.article) throw new Error('no article');
+
+    // Restore state and render
+    finalArticle = data.article;
+    articleIntent = data.intent || (data.article_type === 'single' ? 'single' : 'comparison');
+    persona = data.persona || persona;
+    applyColor(C());
+    currentHistoryId = id;
+    galleries = {}; ytVideos = {}; ytExpanded = {};
+    renderArticle(finalArticle, articleIntent);
+    resetFeedback();
+
+    // Fetch media in background
+    const cars = finalArticle.articleType === 'single' ? [finalArticle.car] : (finalArticle.cars || []);
+    fetchMedia(cars).then(() => renderArticle(finalArticle, articleIntent));
+
+    go('s-article');
+  } catch(e) {
+    wrap.innerHTML = '<div class="hist-empty">Couldn\'t load this article</div>';
+  }
 }
 
 // ── FOLLOW-UP ─────────────────────────────────────────────────────────────────

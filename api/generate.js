@@ -2,6 +2,13 @@ const Anthropic = require('@anthropic-ai/sdk');
 const { supabase } = require('../lib/supabase');
 const { PERSONAS } = require('../lib/personas');
 
+function genHistoryId() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  let id = '';
+  for (let i = 0; i < 8; i++) id += chars[Math.floor(Math.random() * chars.length)];
+  return id;
+}
+
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const COSTS = { article: 40, followup: 10 };
 
@@ -538,7 +545,27 @@ ${schema}`
     });
     if (logErr) console.warn('Log failed:', logErr.message);
 
-    send('done', {});
+    // Auto-save to history
+    let historyId = null;
+    try {
+      historyId = genHistoryId();
+      const { error: histErr } = await supabase.from('shared_articles').insert({
+        id: historyId,
+        invite_code: inviteCode || null,
+        persona: persona || null,
+        prompt: prompt || null,
+        depth: depth != null ? Number(depth) : null,
+        article_type: article.articleType || null,
+        article,
+        created_at: new Date().toISOString(),
+      });
+      if (histErr) { console.warn('History save failed:', histErr.message); historyId = null; }
+    } catch(e) {
+      console.warn('History save error:', e.message);
+      historyId = null;
+    }
+
+    send('done', { historyId });
     res.end();
 
   } catch(err) {
