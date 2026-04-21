@@ -780,9 +780,8 @@ async function revStepComplete(stepIdx, nextStepIdx, statusText) {
   await new Promise(r => revSweep(revRpm, 100, 400, r));
   drawRevCounter(100, 'redline', STEP_DEFS[stepIdx].gear);
   await delay(300);
-  if (nextStepIdx !== null && nextStepIdx < STEP_DEFS.length) {
-    await new Promise(r => revSweep(100, 8, 350, r));
-  }
+  // Always drop revs — either to shift into next server step, or before media gear
+  await new Promise(r => revSweep(100, 8, 350, r));
 }
 
 // Shift to a visual-only gear (5TH / 6TH) not tied to a server step
@@ -1033,9 +1032,9 @@ async function startPipeline(customPrompt) {
     }
 
     const reader=res.body.getReader(), decoder=new TextDecoder();
-    let buf='', currentEvent='';
+    let buf='', currentEvent='', streamDone=false;
 
-    while(true){
+    while(!streamDone){
       const{done,value}=await reader.read();
       if(done)break;
       buf+=decoder.decode(value,{stream:true});
@@ -1067,7 +1066,6 @@ async function startPipeline(customPrompt) {
 
             if(data.article){
               finalArticle=data.article;
-              renderArticle(finalArticle, articleIntent);
             }
 
             if(currentEvent==='error'||data.error){
@@ -1078,13 +1076,15 @@ async function startPipeline(customPrompt) {
 
             if(currentEvent==='done'){
               if(_stepTicker){clearInterval(_stepTicker);_stepTicker=null;}
-              await fetchMediaAndReveal(promptVal);
+              streamDone=true;
             }
-          }catch{}
+          }catch(e){ console.warn('SSE parse:',e); }
           currentEvent='';
         }
       }
     }
+    // Reveal happens outside the silent catch so errors surface properly
+    if(streamDone) await fetchMediaAndReveal(promptVal);
   }catch(err){
     console.error('Stream error:',err);
     document.getElementById('rev-status').textContent=err.message||'Connection failed';
