@@ -67,9 +67,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 .depth-lbl{font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:#555;cursor:pointer;}
 .depth-desc{font-size:12px;color:#666;margin-top:6px;}
 .slbl{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;letter-spacing:4px;text-transform:uppercase;color:#888;margin-bottom:10px;}
-.chips-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
-.chips-hdr .slbl{margin-bottom:0;}
-.surprise-btn{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:11px;letter-spacing:2px;text-transform:uppercase;padding:7px 14px;border-radius:2px;border:none;cursor:pointer;color:#F5F0E8;background:var(--ac,#C8102E);transition:opacity 0.15s,transform 0.1s;}
+.surprise-btn{transition:opacity 0.15s,transform 0.1s!important;}
 .surprise-btn:hover{opacity:0.85;transform:translateY(-1px);}
 .surprise-btn:active{transform:scale(0.97);}
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:22px;}
@@ -394,10 +392,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
       </div>
       <div class="depth-desc" id="d-desc">The full article experience</div>
     </div>
-    <div class="chips-hdr" style="margin-top:18px;">
-      <div class="slbl">Quick fire</div>
-      <button class="surprise-btn" id="surprise-btn" onclick="surpriseMe()">⚡ SURPRISE ME</button>
-    </div>
+    <div class="slbl" style="margin-top:18px;">Quick fire</div>
     <div class="chips" id="chips"></div>
   </div>
 </div>
@@ -732,7 +727,10 @@ function buildPersonaList() {
     </div>`).join('');
 }
 function renderChips(list) {
-  document.getElementById('chips').innerHTML = list.map(s=>`<div class="chip" onclick="setPrompt('${s.replace(/'/g,"\\'")}')">${s}</div>`).join('');
+  const c = C() || '#C8102E';
+  const surpriseChip = `<button class="chip surprise-btn" id="surprise-btn" onclick="surpriseMe()" style="background:${c};color:#fff;border-color:${c}">⚡ Surprise me</button>`;
+  const chips = list.map(s=>`<div class="chip" onclick="setPrompt('${s.replace(/'/g,"\\'")}')">${s}</div>`).join('');
+  document.getElementById('chips').innerHTML = surpriseChip + chips;
 }
 async function buildChips() {
   document.getElementById('chips').innerHTML = Array(6).fill(`<div class="chip-shimmer"></div>`).join('');
