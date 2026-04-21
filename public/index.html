@@ -67,6 +67,11 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 .depth-lbl{font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:#555;cursor:pointer;}
 .depth-desc{font-size:12px;color:#666;margin-top:6px;}
 .slbl{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;letter-spacing:4px;text-transform:uppercase;color:#888;margin-bottom:10px;}
+.chips-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.chips-hdr .slbl{margin-bottom:0;}
+.surprise-btn{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:11px;letter-spacing:2px;text-transform:uppercase;padding:7px 14px;border-radius:2px;border:none;cursor:pointer;color:#F5F0E8;background:var(--ac,#C8102E);transition:opacity 0.15s,transform 0.1s;}
+.surprise-btn:hover{opacity:0.85;transform:translateY(-1px);}
+.surprise-btn:active{transform:scale(0.97);}
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:22px;}
 .chip{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;padding:8px 14px;border:1.5px solid #1A1A1A;border-radius:2px;cursor:pointer;color:#1A1A1A;background:transparent;text-transform:uppercase;transition:all 0.15s;letter-spacing:0.5px;}
 .chip:hover{background:#1A1A1A;color:#F5F0E8;}
@@ -389,7 +394,10 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
       </div>
       <div class="depth-desc" id="d-desc">The full article experience</div>
     </div>
-    <div class="slbl" style="margin-top:18px;">Quick fire</div>
+    <div class="chips-hdr" style="margin-top:18px;">
+      <div class="slbl">Quick fire</div>
+      <button class="surprise-btn" id="surprise-btn" onclick="surpriseMe()">⚡ SURPRISE ME</button>
+    </div>
     <div class="chips" id="chips"></div>
   </div>
 </div>
@@ -767,6 +775,20 @@ function selectPersona(key) {
   go('s-prompt');
 }
 function setPrompt(t){document.getElementById('p-input').value=t;}
+function surpriseMe() {
+  // Collect text from whichever chips are currently rendered
+  const chipEls = document.querySelectorAll('#chips .chip');
+  const pool = chipEls.length
+    ? Array.from(chipEls).map(el => el.textContent.trim())
+    : SUGGESTIONS;
+  const pick = pool[Math.floor(Math.random() * pool.length)];
+  document.getElementById('p-input').value = pick;
+  // Brief flash on the button then fire
+  const btn = document.getElementById('surprise-btn');
+  btn.textContent = '✓ ' + pick.toUpperCase().slice(0, 22) + (pick.length > 22 ? '…' : '');
+  btn.disabled = true;
+  setTimeout(() => { startPipeline(); }, 350);
+}
 function setDepth(v) {
   depth=v; document.getElementById('d-slider').value=v;
   document.getElementById('d-val').textContent=DEPTH_LABELS[v];
