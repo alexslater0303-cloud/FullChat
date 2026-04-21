@@ -1770,4 +1770,21 @@ async function askFollowUp(){
   thread.scrollIntoView({behavior:'smooth',block:'end'});
   const ctx=`You wrote:\nHEADLINE:${finalArticle.headline}\nCARS:${cars}\n\nAnswer in character as ${p.name}. Prose, no JSON, 2-4 sentences.`;
   const history=convo.map(m=>({role:m.role,content:m.content}));
-  t
+  try{
+    const res=await fetch('/api/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:q,persona,depth:1,inviteCode,mode:'followup',context:ctx,history})});
+    const data=await res.json();
+    const answer=data.answer||'Sorry, try again.';
+    convo.push({role:'user',content:q},{role:'assistant',content:answer});
+    document.getElementById('thinking').style.display='none';
+    thread.insertAdjacentHTML('beforeend',`<div class="msg-a"><div class="msg-albl" style="color:${c}">${p.name.split(' ')[1]}</div><div class="msg-abub">${esc(answer)}</div></div>`);
+    thread.scrollIntoView({behavior:'smooth',block:'end'});
+  }catch{
+    document.getElementById('thinking').style.display='none';
+    thread.insertAdjacentHTML('beforeend',`<div class="msg-a"><div class="msg-abub">Connection error — try again.</div></div>`);
+  }
+  fuBusy=false;document.getElementById('fu-send').disabled=false;
+}
+</script>
+<script src="/pdf.js"></script>
+</body>
+</html>
