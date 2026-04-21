@@ -82,13 +82,15 @@ async function downloadPDF() {
     await _loadHtml2PDF();
     const el = _buildPDFElement(finalArticle);
     document.body.appendChild(el);
+    // Brief pause so fonts render before html2canvas captures
+    await new Promise(r => setTimeout(r, 400));
     const slug = (finalArticle.headline || 'fullchat')
       .toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40);
     await html2pdf().set({
       margin: 0,
       filename: 'fullchat-' + slug + '.pdf',
       image: { type: 'jpeg', quality: 0.92 },
-      html2canvas: { scale: 2, useCORS: true, letterRendering: true, logging: false },
+      html2canvas: { scale: 2, useCORS: true, letterRendering: true, logging: false, windowWidth: 794 },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
       pagebreak: { mode: ['avoid-all', 'css'] }
     }).from(el).save();
@@ -151,7 +153,7 @@ function _buildPDFElement(a) {
     : '';
 
   const wrap = document.createElement('div');
-  wrap.style.cssText = 'position:fixed;left:-9999px;top:0;width:794px;background:#fff;font-family:Barlow,sans-serif';
+  wrap.style.cssText = 'position:fixed;left:0;top:0;width:794px;background:#fff;font-family:Barlow,sans-serif;z-index:99999;pointer-events:none;';
 
   let html = '<div style="width:794px;background:#fff">';
 
