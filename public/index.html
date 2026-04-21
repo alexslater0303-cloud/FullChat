@@ -83,8 +83,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 #s-generating{background:#111;position:relative;min-height:100vh;}
 .gen-article-bg{width:100%;min-height:100vh;}
 .gen-stream-bg{position:fixed;inset:0;z-index:98;overflow:hidden;padding:48px 36px;pointer-events:none;}
-.gen-stream-bg-text{font-family:'Barlow',sans-serif;font-size:clamp(12px,1.4vw,15px);line-height:1.9;color:rgba(255,255,255,0.38);white-space:pre-wrap;word-break:break-word;}
-.gen-overlay{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;background:rgba(0,0,0,0.18);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);transition:opacity 0.9s ease;}
+.gen-stream-bg-text{font-family:'Barlow',sans-serif;font-size:clamp(12px,1.4vw,15px);line-height:1.9;color:rgba(255,255,255,0.42);white-space:pre-wrap;word-break:break-word;animation:bgFlow 55s linear infinite;}
+@keyframes bgFlow{from{transform:translateY(0)}to{transform:translateY(-320px)}}
+.gen-overlay{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;background:rgba(0,0,0,0.07);backdrop-filter:blur(11px);-webkit-backdrop-filter:blur(11px);transition:opacity 0.9s ease;}
 .gen-overlay.revealing{opacity:0;pointer-events:none;}
 .gen-overlay-inner{flex:1;display:flex;align-items:center;justify-content:center;}
 .gen-content{display:flex;flex-direction:column;align-items:center;gap:clamp(4px,1.2vh,12px);padding:24px 24px 32px;width:100%;max-width:min(90vw,600px);}
@@ -752,23 +753,20 @@ function revStepStart(stepIdx, statusText) {
   startTicker(step.id);
   if (_stepTicker) { clearInterval(_stepTicker); _stepTicker = null; }
   _revOscillating = false;
-  revSweep(revRpm, 15, 500, () => {
-    _revOscillating = true;
-    revOscillateLoop();
+  revSweep(revRpm, 8, 400, () => {
+    revStartSweep();
   });
 }
 
-// Continuous oscillating loop — sweeps up, drops, repeats until stopped
+// Single smooth sweep per gear — rises slowly to 88 over ~18s.
+// Naturally interrupted by revStepComplete which cancels the animation frame.
 let _revOscillating = false;
-async function revOscillateLoop() {
-  while (_revOscillating) {
-    await new Promise(r => revSweep(revRpm, 74, 4500, r));
-    if (!_revOscillating) break;
-    await delay(250);
-    await new Promise(r => revSweep(74, 10, 550, r));
-    if (!_revOscillating) break;
-    await delay(300);
-  }
+function revStartSweep() {
+  _revOscillating = true;
+  revSweep(revRpm || 8, 88, 18000, () => {
+    // Sweep completed without interruption — just hold at peak
+    _revOscillating = false;
+  });
 }
 
 // Called when a step completes — hit redline then drop and shift
@@ -983,6 +981,31 @@ async function submitInvite() {
 }
 
 // ── STREAMING PIPELINE ────────────────────────────────────────────────────────
+// ── BACKGROUND TEXT DRIP ─────────────────────────────────────────────────────
+// Buffers incoming token text and drips it out smoothly character-by-character
+// so the background never appears static even during token gaps
+let _dripQueue = '', _dripDisplayed = '', _dripRafId = null;
+function bgDripEnqueue(text) {
+  _dripQueue += text;
+  if (!_dripRafId) _bgDripTick();
+}
+function _bgDripTick() {
+  if (!_dripQueue) { _dripRafId = null; return; }
+  const take = Math.min(4, _dripQueue.length);
+  _dripDisplayed += _dripQueue.slice(0, take);
+  _dripQueue = _dripQueue.slice(take);
+  _dripDisplayed = _dripDisplayed.slice(-5000);
+  const el = document.getElementById('stream-preview');
+  if (el) el.textContent = _dripDisplayed;
+  _dripRafId = requestAnimationFrame(_bgDripTick);
+}
+function resetBgDrip() {
+  _dripQueue = ''; _dripDisplayed = '';
+  if (_dripRafId) { cancelAnimationFrame(_dripRafId); _dripRafId = null; }
+  const el = document.getElementById('stream-preview');
+  if (el) el.textContent = '';
+}
+
 async function startPipeline(customPrompt) {
   const promptVal = customPrompt || document.getElementById('p-input').value.trim();
   if (!promptVal) { document.getElementById('p-input').focus(); return; }
@@ -993,7 +1016,7 @@ async function startPipeline(customPrompt) {
   initRevCounter();
   go('s-generating');
   document.getElementById('gen-article-bg').innerHTML='';
-  document.getElementById('stream-preview').textContent='';
+  resetBgDrip();
   const overlay=document.getElementById('gen-overlay');
   overlay.classList.remove('revealing'); overlay.style.opacity='1';
 
@@ -1036,13 +1059,9 @@ async function startPipeline(customPrompt) {
             }
 
             if(data.chunk!==undefined){
-              // Update stream preview
               const readable=data.chunk.replace(/[{}\[\]"\\]/g,' ').replace(/\s+/g,' ');
-              const prev=document.getElementById('stream-preview');
-              if(prev){
-                const withBreaks=readable.replace(/(.{60}\S*)\s/g,'$1\n');
-                prev.textContent=(prev.textContent+withBreaks).slice(-4000);
-              }
+              const withBreaks=readable.replace(/(.{60}\S*)\s/g,'$1\n');
+              bgDripEnqueue(withBreaks);
               tryProgressiveRender();
             }
 
