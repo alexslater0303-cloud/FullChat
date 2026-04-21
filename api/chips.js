@@ -50,8 +50,9 @@ Return ONLY a JSON array of 8 strings, nothing else. Example:
     const raw = data && data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0] ? data.candidates[0].content.parts[0].text : '';
     console.log('Chips raw:', raw.slice(0, 300));
 
-    const match = raw.match(/\[[\s\S]*?\]/);
-    if (!match) throw new Error('No JSON array found in response');
+    // Match the largest [...] block — handles prose before/after the array
+    const match = raw.match(/\[[\s\S]*\]/);
+    if (!match) throw new Error('No JSON array found in response: ' + raw.slice(0, 200));
 
     const chips = JSON.parse(match[0]);
     if (!Array.isArray(chips) || chips.length < 4) throw new Error('Bad shape');
