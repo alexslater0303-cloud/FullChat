@@ -584,10 +584,13 @@ const FU_CHIPS = ['Which holds its value best?','Any to avoid completely?','What
 const DEPTH_LABELS = ['Quick Take','Full Feature','Deep Dive'];
 const DEPTH_DESCS  = ['Fast read, punchy verdict','The full article experience','Maximum depth & detail'];
 // 3 server-driven steps (research/write/fact) + 4TH & 5TH are client-side visual gears
-const STEP_DEFS = [
-  {id:'research',gear:'1ST',name:'Live Research', status:'Searching live market data...'},
-  {id:'write',   gear:'2ND',name:'Writing',       status:'Streaming article...'},
-  {id:'fact',    gear:'3RD',name:'Fact Check',    status:'Verifying claims...'},
+// Cinematic gear definitions — 1ST–4TH are fixed-duration, 5TH holds until server done
+const CINEMATIC_GEARS = [
+  { gear:'1ST', name:'Researching',  ticker:'research', ms:3200 },
+  { gear:'2ND', name:'Analysing',    ticker:'research', ms:3600 },
+  { gear:'3RD', name:'Writing',      ticker:'write',    ms:3600 },
+  { gear:'4TH', name:'Refining',     ticker:'fact',     ms:3200 },
+  { gear:'5TH', name:'Generating',   ticker:'write',    ms:null },
 ];
 
 const TICKER_MSGS = {
@@ -643,7 +646,9 @@ const PSVG = {
 let persona='provocateur', depth=1, inviteCode='', testerName='';
 let finalArticle=null, articleIntent='comparison', convo=[], fuBusy=false;
 let galleries={}, ytVideos={}, ytExpanded={};
-let currentStep=0; // 0-3
+let currentStep=0;
+let _currentDisplayGear = '1ST';
+let _gearDoneResolve = null, _serverDone = false, _gearSeqPromise = null;
 
 const P=()=>PERSONAS[persona], C=()=>P().color;
 const delay=ms=>new Promise(r=>setTimeout(r,ms));
@@ -699,6 +704,7 @@ function stopTicker() {
 
 function initRevCounter() {
   revRpm = 0; revTarget = 0; revPhase = 'idle'; currentStep = 0;
+  _currentDisplayGear = '1ST'; _serverDone = false; _gearDoneResolve = null;
   cancelAnimationFrame(revAnimId);
   stopTicker();
   drawRevCounter(0, 'idle', '1ST');
@@ -712,11 +718,11 @@ function initRevCounter() {
 
 function buildRevDots() {
   document.getElementById('rev-dots').innerHTML =
-    STEP_DEFS.map((_,i) => `<div class="rev-dot" id="rdot-${i}"></div>`).join('');
+    CINEMATIC_GEARS.map((_,i) => `<div class="rev-dot" id="rdot-${i}"></div>`).join('');
 }
 
 function setRevDot(stepIdx, state) {
-  STEP_DEFS.forEach((_,i) => {
+  CINEMATIC_GEARS.forEach((_,i) => {
     const d = document.getElementById(`rdot-${i}`);
     if (!d) return;
     d.className = 'rev-dot' + (i < stepIdx ? ' done' : i === stepIdx ? ' active' : '');
@@ -731,8 +737,7 @@ function revSweep(fromRpm, toRpm, durationMs, onComplete) {
     const t = Math.min((now - start) / durationMs, 1);
     const eased = t < 0.5 ? 2*t*t : -1+(4-2*t)*t; // ease in-out
     revRpm = fromRpm + (toRpm - fromRpm) * eased;
-    const step = STEP_DEFS[currentStep];
-    drawRevCounter(revRpm, 'active', step?.gear || '1ST');
+    drawRevCounter(revRpm, 'active', _currentDisplayGear || '1ST');
     if (t < 1) {
       revAnimId = requestAnimationFrame(tick);
     } else {
@@ -767,6 +772,42 @@ function revStartSweep() {
     // Sweep completed without interruption — just hold at peak
     _revOscillating = false;
   });
+}
+
+// Cinematic gear sequence — runs independently from server timing
+async function runGearSequence() {
+  for(let i = 0; i < CINEMATIC_GEARS.length; i++) {
+    const g = CINEMATIC_GEARS[i];
+    _currentDisplayGear = g.gear;
+    setRevDot(i, 'active');
+    setGearDisplay(g.gear, g.name, i > 0);
+    startTicker(g.ticker);
+    _revOscillating = false;
+    // Warm up from 0 on first gear, otherwise revs already dropped to ~8 from previous gear
+    if(i === 0) await new Promise(r => revSweep(0, 8, 600, r));
+    revStartSweep();
+
+    if(g.ms !== null) {
+      // Fixed-duration gear — hold then shift to next
+      await delay(g.ms);
+      _revOscillating = false;
+      await new Promise(r => revSweep(revRpm, 100, 400, r));
+      drawRevCounter(100, 'redline', g.gear);
+      setRevDot(i, 'done');
+      await delay(350);
+      await new Promise(r => revSweep(100, 8, 350, r));
+    } else {
+      // 5TH — hold here until server signals done
+      if(!_serverDone) {
+        await new Promise(r => { _gearDoneResolve = r; });
+      }
+      _revOscillating = false;
+      await new Promise(r => revSweep(revRpm, 100, 500, r));
+      drawRevCounter(100, 'redline', g.gear);
+      setRevDot(i, 'done');
+      await delay(400);
+    }
+  }
 }
 
 // Called when a step completes — hit redline then drop and shift
@@ -1019,6 +1060,9 @@ async function startPipeline(customPrompt) {
   const overlay=document.getElementById('gen-overlay');
   overlay.classList.remove('revealing'); overlay.style.opacity='1';
 
+  // Launch cinematic gear sequence — runs independently of server timing
+  _gearSeqPromise = runGearSequence();
+
   try {
     const res = await fetch('/api/generate',{
       method:'POST',headers:{'Content-Type':'application/json'},
@@ -1045,18 +1089,13 @@ async function startPipeline(customPrompt) {
           try{
             const data=JSON.parse(line.slice(5).trim());
 
-            if(data.step){
-              const si=STEP_DEFS.findIndex(s=>s.id===data.step);
-              if(data.state==='active'){
-                revStepStart(si, data.status);
-              } else if(data.state==='done'){
-                const nextIdx = si+1 < STEP_DEFS.length ? si+1 : null;
-                await revStepComplete(si, nextIdx, data.status);
-                if(data.usedGemini) document.getElementById('a-gemini').style.display='inline-block';
-                if(data.intent) articleIntent=data.intent;
-              }
+            // Track metadata from server steps
+            if(data.step && data.state==='done'){
+              if(data.usedGemini) document.getElementById('a-gemini').style.display='inline-block';
+              if(data.intent) articleIntent=data.intent;
             }
 
+            // Background text drip from streaming tokens
             if(data.chunk!==undefined){
               const readable=data.chunk.replace(/[{}\[\]"\\]/g,' ').replace(/\s+/g,' ');
               const withBreaks=readable.replace(/(.{60}\S*)\s/g,'$1\n');
@@ -1064,18 +1103,19 @@ async function startPipeline(customPrompt) {
               tryProgressiveRender();
             }
 
-            if(data.article){
-              finalArticle=data.article;
-            }
+            // Store article when it arrives
+            if(data.article){ finalArticle=data.article; }
 
             if(currentEvent==='error'||data.error){
-              if(_stepTicker){clearInterval(_stepTicker);_stepTicker=null;}
+              stopTicker();
               document.getElementById('rev-status').textContent=data.message||data.error||'Error';
               await delay(3000); resetSurpriseBtn(); go('s-prompt'); return;
             }
 
             if(currentEvent==='done'){
-              if(_stepTicker){clearInterval(_stepTicker);_stepTicker=null;}
+              // Signal 5TH gear to proceed
+              _serverDone=true;
+              if(_gearDoneResolve){ _gearDoneResolve(); _gearDoneResolve=null; }
               streamDone=true;
             }
           }catch(e){ console.warn('SSE parse:',e); }
@@ -1138,13 +1178,11 @@ async function fetchMediaAndReveal(prompt) {
     ? [finalArticle.car]
     : (finalArticle.cars||[]);
 
-  // 5TH gear — media fetch
-  await shiftToGear('4TH', 'Media', 'images');
-  await fetchMedia(cars);
-
-  // 6TH gear — final assembly
-  await shiftToGear('5TH', 'Final Assembly', 'reveal');
-  await delay(800);
+  // Run media fetch and wait for gear sequence to finish in parallel
+  await Promise.all([
+    fetchMedia(cars),
+    _gearSeqPromise || Promise.resolve(),
+  ]);
 
   stopTicker();
 
