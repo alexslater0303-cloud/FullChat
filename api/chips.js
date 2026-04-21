@@ -12,29 +12,25 @@ module.exports = async (req, res) => {
   ];
 
   const KEY = process.env.GEMINI_API_KEY;
-  if (!KEY) return res.status(200).json({ chips: FALLBACK });
+  if (!KEY) {
+    console.log('Chips: no GEMINI_API_KEY, using fallback');
+    return res.status(200).json({ chips: FALLBACK, source: 'fallback-no-key' });
+  }
 
-  // Seed variation by week number so chips rotate weekly but are stable within a session
   const now = new Date();
   const weekSeed = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / 604800000);
   const monthName = now.toLocaleString('en-GB', { month: 'long' });
   const year = now.getFullYear();
 
-  const prompt = `You are a motoring journalist generating punchy prompt ideas for a car article generator aimed at UK enthusiasts.
+  const prompt = `You are a motoring journalist. Generate 8 short prompt chips for a UK car article generator.
 
-Generate exactly 8 varied prompt chips for ${monthName} ${year} (seed: week ${weekSeed}). Each chip is a short, specific, enticing article brief — a mix of comparisons and deep dives.
+Date: ${monthName} ${year}, week ${weekSeed}.
 
-Rules:
-- Mix price brackets: some budget (under £15k), some mid-range (£15k–£40k), some aspirational (£40k+)
-- Mix categories: hot hatches, sports cars, EVs, SUVs, sleeper/bargain picks, JDM, classics
-- Mix formats: some comparisons ("Best X under £Yk"), some deep dives ("Deep dive on the [Car]")
-- All cars must be genuinely relevant to UK buyers
-- Be specific — name real cars or real budget brackets
-- Keep each chip under 8 words
-- Vary the list so it feels fresh and different to the previous week
+Mix of: comparisons (e.g. "Best hot hatches under 15k"), deep dives (e.g. "Deep dive on the Golf R"), EVs, sports cars, budget picks, classics, JDM.
+Keep each under 8 words. UK market focus. Use GBP prices written as e.g. "15k" or "20k" not the pound symbol.
 
-Respond with ONLY a JSON array of 8 strings. No markdown, no explanation:
-["chip 1", "chip 2", ...]`;
+Return ONLY a JSON array of 8 strings, nothing else. Example format:
+["Best hot hatches under 15k","Deep dive on the Civic Type R","Top AWD EVs for 2025","Best sleeper saloons under 10k","Deep dive on the Toyota GR86","Best estate cars under 20k","Top JDM picks for UK roads","Best SUVs under 30k"]`;
 
   try {
     const r = await fetch(
@@ -44,19 +40,27 @@ Respond with ONLY a JSON array of 8 strings. No markdown, no explanation:
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 1.1, maxOutputTokens: 512 },
+          generationConfig: { temperature: 0.9, maxOutputTokens: 256 },
         }),
       }
     );
     const data = await r.json();
+    console.log('Chips Gemini status:', r.status, JSON.stringify(data).slice(0, 200));
+
     const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    // Strip markdown fences if present
-    const clean = raw.replace(/```(?:json)?/gi, '').replace(/```/g, '').trim();
-    const chips = JSON.parse(clean);
-    if (!Array.isArray(chips) || chips.length < 4) throw new Error('Bad response shape');
-    return res.status(200).json({ chips: chips.slice(0, 8) });
+    console.log('Chips raw:', raw.slice(0, 300));
+
+    // Extract first JSON array found anywhere in the response
+    const match = raw.match(/\[[\s\S]*?\]/);
+    if (!match) throw new Error('No JSON array found in response');
+
+    const chips = JSON.parse(match[0]);
+    if (!Array.isArray(chips) || chips.length < 4) throw new Error(`Bad shape: ${chips}`);
+
+    console.log('Chips success:', chips.length, 'chips');
+    return res.status(200).json({ chips: chips.slice(0, 8), source: 'gemini' });
   } catch (e) {
-    console.error('Chips fetch error:', e.message);
-    return res.status(200).json({ chips: FALLBACK });
+    console.error('Chips error:', e.message);
+    return res.status(200).json({ chips: FALLBACK, source: 'fallback-error', error: e.message });
   }
 };

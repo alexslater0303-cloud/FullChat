@@ -727,15 +727,15 @@ function renderChips(list) {
   document.getElementById('chips').innerHTML = list.map(s=>`<div class="chip" onclick="setPrompt('${s.replace(/'/g,"\\'")}')">${s}</div>`).join('');
 }
 async function buildChips() {
-  // Show shimmer placeholders while fetching
   document.getElementById('chips').innerHTML = Array(6).fill(`<div class="chip-shimmer"></div>`).join('');
   try {
     const r = await fetch('/api/chips');
-    if (!r.ok) throw new Error('non-200');
-    const { chips } = await r.json();
-    if (Array.isArray(chips) && chips.length) { renderChips(chips); return; }
-    throw new Error('empty');
-  } catch {
+    const json = await r.json();
+    console.log('[chips]', json.source, json.chips);
+    if (Array.isArray(json.chips) && json.chips.length) { renderChips(json.chips); return; }
+    throw new Error('empty response');
+  } catch(e) {
+    console.warn('[chips] fell back to static:', e.message);
     renderChips(SUGGESTIONS);
   }
 }
