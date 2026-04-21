@@ -263,6 +263,15 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 
 .new-btn{margin:0 24px;display:block;width:calc(100% - 48px);color:#F5F0E8;border:none;border-radius:4px;padding:16px;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:16px;letter-spacing:3px;text-transform:uppercase;cursor:pointer;transition:opacity 0.2s;}
 .new-btn:hover{opacity:0.85;}
+/* Feedback bar */
+.feedback-bar{display:flex;align-items:center;justify-content:center;gap:16px;padding:18px 24px;border-top:2px solid #1A1A1A;border-bottom:2px solid #1A1A1A;margin-bottom:18px;}
+.feedback-lbl{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:11px;letter-spacing:4px;text-transform:uppercase;color:#888;}
+.feedback-btns{display:flex;gap:8px;}
+.fb-btn{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:18px;width:44px;height:44px;border-radius:50%;border:2px solid #1A1A1A;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;line-height:1;}
+.fb-btn:hover{background:#1A1A1A;color:#F5F0E8;transform:scale(1.1);}
+.fb-btn.voted{border-color:var(--ac,#C8102E);background:var(--ac,#C8102E);color:#fff;}
+.fb-btn.voted:hover{transform:none;opacity:0.9;}
+.feedback-done{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--ac,#C8102E);display:none;}
 
 /* Follow-up */
 .fu-section{border-top:2px solid #1A1A1A;margin-top:22px;}
@@ -441,6 +450,14 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
   <div class="abody">
     <div class="aintro" id="a-intro"></div>
     <div id="article-main"></div>
+  </div>
+  <div class="feedback-bar" id="feedback-bar">
+    <div class="feedback-lbl">Rate this feature</div>
+    <div class="feedback-btns">
+      <button class="fb-btn" id="fb-up" onclick="submitFeedback('up')" title="Loved it">👍</button>
+      <button class="fb-btn" id="fb-down" onclick="submitFeedback('down')" title="Needs work">👎</button>
+    </div>
+    <div class="feedback-done" id="feedback-done">Thanks for the feedback!</div>
   </div>
   <button class="new-btn" id="a-newbtn" onclick="go('s-prompt')">← NEW BRIEF</button>
   <div class="fu-section">
@@ -956,6 +973,7 @@ async function fetchMediaAndReveal(prompt) {
   const overlay=document.getElementById('gen-overlay');
   if(overlay){overlay.classList.add('revealing');await delay(950);}
   renderArticle(finalArticle, articleIntent);
+  resetFeedback();
   go('s-article');
 }
 
@@ -1288,6 +1306,41 @@ function galUpdate(i){
 function generateAlternative(make, model) {
   document.getElementById('p-input').value=`Deep dive on the ${make} ${model}`;
   startPipeline(`Deep dive on the ${make} ${model}`);
+}
+
+// ── FEEDBACK ──────────────────────────────────────────────────────────────────
+async function submitFeedback(rating) {
+  const upBtn = document.getElementById('fb-up');
+  const downBtn = document.getElementById('fb-down');
+  const done = document.getElementById('feedback-done');
+  if (!upBtn || upBtn.disabled) return;
+  upBtn.disabled = true; downBtn.disabled = true;
+  const voted = rating === 'up' ? upBtn : downBtn;
+  voted.classList.add('voted');
+  done.style.display = 'block';
+  try {
+    await fetch('/api/feedback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        inviteCode,
+        persona,
+        prompt: document.getElementById('p-input')?.value || '',
+        depth,
+        headline: finalArticle?.headline || '',
+        articleType: finalArticle?.articleType || articleIntent,
+        rating,
+      })
+    });
+  } catch(e) { console.warn('Feedback send failed:', e.message); }
+}
+function resetFeedback() {
+  const upBtn = document.getElementById('fb-up');
+  const downBtn = document.getElementById('fb-down');
+  const done = document.getElementById('feedback-done');
+  if (upBtn) { upBtn.disabled = false; upBtn.classList.remove('voted'); }
+  if (downBtn) { downBtn.disabled = false; downBtn.classList.remove('voted'); }
+  if (done) done.style.display = 'none';
 }
 
 // ── FOLLOW-UP ─────────────────────────────────────────────────────────────────
