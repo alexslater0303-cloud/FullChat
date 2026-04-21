@@ -145,6 +145,21 @@ function comparisonSchema(depth) {
       "quoteAttribution": "Journalist Name, Publication"
     }
   ],
+  "interestingMentions": [
+    {
+      "make": "Make", "model": "Model",
+      "generation": "e.g. 10th gen / Type X",
+      "yearFrom": 2020, "yearTo": 2024,
+      "bodyStyle": "e.g. saloon",
+      "searchMake": "Base brand only",
+      "searchModel": "Base model only",
+      "importNote": "One sentence explaining why it's not in the main list and where it IS available (e.g. Japan-only, US-spec, discontinued in UK 2019)",
+      "whyInteresting": "2-3 sentences on why it's worth knowing about — what makes it special",
+      "stat1_val": "£XX,XXX", "stat1_label": "Import cost est.",
+      "stat2_val": "XXXhp", "stat2_label": "Power",
+      "stat3_val": "X.Xs", "stat3_label": "0-62mph"
+    }
+  ],
   "verdict": "${verdict}",
   "buyingGuide": [
     { "title": "Watch point", "detail": "One sentence of practical buying advice." }
@@ -322,7 +337,8 @@ module.exports = async (req, res) => {
       const promptNum = promptNumMatch ? parseInt(promptNumMatch[1]) : null;
       const numCars = (promptNum && promptNum >= 2 && promptNum <= 12) ? promptNum : cs.numCars;
       schema = cs.schema;
-      systemNote = `Write a Full Chat motoring comparison feature about: "${prompt}". Include exactly ${numCars} cars.`;
+      const isImportPrompt = /\b(import|JDM|grey.?import|USDM|japan.?only|us.?spec|jdm.?spec|aus.?spec|australia.?only|canada.?only|uae.?spec|middle.?east)\b/i.test(prompt);
+      systemNote = `Write a Full Chat motoring comparison feature about: "${prompt}". Include exactly ${numCars} cars.${!isImportPrompt ? ` ALL cars in the main "cars" array must be genuinely available in the UK — either currently on sale new, or widely available on the UK used market. Do NOT put a car in the main list if it was never officially sold in the UK, or if it requires a grey/personal import. Instead, use the "interestingMentions" array for any cars that are relevant to the prompt but not UK-available — explain briefly why they're not in the main list and where they ARE sold. If there are no interesting non-UK cars worth flagging, leave interestingMentions as an empty array.` : ` The user has specifically requested imports or market-specific models, so non-UK cars may be included in the main cars list.`}`;
     }
 
     const maxTokens = intent==='single'

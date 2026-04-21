@@ -224,6 +224,28 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 .runcost-val{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:14px;color:#1A1A1A;text-align:right;}
 .guide-txt{font-size:13px;line-height:1.5;color:#333;}
 
+/* Interesting mentions (import / non-UK) */
+.imention-section{margin-top:8px;margin-bottom:8px;}
+.imention-hdr{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+.imention-hdr-rule{flex:1;height:2px;background:#1A1A1A;}
+.imention-hdr-lbl{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:11px;letter-spacing:5px;text-transform:uppercase;color:#888;white-space:nowrap;}
+.imention-intro{font-size:13px;color:#666;line-height:1.5;margin-bottom:16px;font-style:italic;}
+.imention-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;}
+.imention-card{background:#fff;border:2px solid #1A1A1A;border-radius:4px;overflow:hidden;}
+.imention-card-top{padding:14px 16px 10px;}
+.imention-badge{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:9px;letter-spacing:3px;text-transform:uppercase;color:#fff;background:#888;display:inline-block;padding:3px 7px;border-radius:2px;margin-bottom:8px;}
+.imention-make{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#888;margin-bottom:2px;}
+.imention-model{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:22px;letter-spacing:-0.5px;text-transform:uppercase;color:#1A1A1A;line-height:1;}
+.imention-gen{font-family:'Barlow Condensed',sans-serif;font-weight:400;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#999;margin-top:4px;}
+.imention-stats{display:flex;border-top:1.5px solid #F0EDE8;border-bottom:1.5px solid #F0EDE8;margin:10px 0 0;}
+.imention-stat{flex:1;padding:8px 10px;text-align:center;border-right:1.5px solid #F0EDE8;}
+.imention-stat:last-child{border-right:none;}
+.imention-stat-val{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:16px;color:#1A1A1A;line-height:1;}
+.imention-stat-lbl{font-family:'Barlow Condensed',sans-serif;font-weight:400;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#999;margin-top:2px;}
+.imention-card-body{padding:12px 16px 14px;}
+.imention-why{font-size:12.5px;line-height:1.5;color:#333;margin-bottom:8px;}
+.imention-note{font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:1px;color:#888;border-left:2px solid #D8D3CB;padding-left:8px;}
+
 /* Alternatives */
 .alt-card{border:1.5px solid #D8D3CB;border-radius:4px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:all 0.15s;margin-bottom:10px;background:white;}
 .alt-card:hover{border-color:#1A1A1A;background:#F5F0E8;}
@@ -1068,7 +1090,8 @@ function renderComparison(a,c){
       <div class="verdict-lbl" style="color:${c}">The Verdict</div>
       <div class="verdict-txt">${esc(a.verdict||'')}</div>
     </div>
-    ${renderBuyingGuide(a,c)}`;
+    ${renderBuyingGuide(a,c)}
+    ${renderInterestingMentions(a,c)}`;
 }
 
 function renderMarketplaceLinks(urls, c) {
@@ -1123,6 +1146,50 @@ function renderBuyingGuide(a, c) {
             <div class="guide-txt"><strong>${esc(item.title||'')}.</strong> ${esc(item.detail||'')}</div>
           </div>`).join('')}
       </div>
+    </div>`;
+}
+
+function renderInterestingMentions(a, c) {
+  const mentions = (a.interestingMentions || []).filter(m => m && m.make && m.model);
+  if (!mentions.length) return '';
+  const cards = mentions.map(m => {
+    const stats = [
+      [m.stat1_val, m.stat1_label],
+      [m.stat2_val, m.stat2_label],
+      [m.stat3_val, m.stat3_label]
+    ].filter(([v]) => v);
+    const statsHtml = stats.length ? `
+      <div class="imention-stats">
+        ${stats.map(([val,lbl]) => `
+          <div class="imention-stat">
+            <div class="imention-stat-val">${esc(val)}</div>
+            <div class="imention-stat-lbl">${esc(lbl||'')}</div>
+          </div>`).join('')}
+      </div>` : '';
+    return `
+      <div class="imention-card">
+        <div class="imention-card-top">
+          <div class="imention-badge" style="background:${c}">Import / Not UK spec</div>
+          <div class="imention-make">${esc(m.make)}</div>
+          <div class="imention-model">${esc(m.model)}</div>
+          ${m.generation ? `<div class="imention-gen">${esc(m.generation)}${m.yearFrom ? ' · ' + m.yearFrom + (m.yearTo ? '–' + m.yearTo : '') : ''}</div>` : ''}
+          ${statsHtml}
+        </div>
+        <div class="imention-card-body">
+          ${m.whyInteresting ? `<div class="imention-why">${esc(m.whyInteresting)}</div>` : ''}
+          ${m.importNote ? `<div class="imention-note">${esc(m.importNote)}</div>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+  return `
+    <div class="imention-section">
+      <div class="imention-hdr">
+        <div class="imention-hdr-rule"></div>
+        <div class="imention-hdr-lbl">Also worth knowing about</div>
+        <div class="imention-hdr-rule"></div>
+      </div>
+      <div class="imention-intro">These cars didn't make the main list — they're not readily available in the UK — but they're too interesting to ignore.</div>
+      <div class="imention-grid">${cards}</div>
     </div>`;
 }
 
