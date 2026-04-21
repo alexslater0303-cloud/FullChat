@@ -109,9 +109,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 .anav-right{display:flex;align-items:center;gap:8px;}
 .nbtn{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:11px;letter-spacing:3px;text-transform:uppercase;padding:8px 14px;border-radius:2px;background:transparent;cursor:pointer;transition:all 0.15s;}
 .nbtn:hover{background:#1A1A1A!important;color:#F5F0E8!important;border-color:#1A1A1A!important;}
-.share-btn{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:11px;letter-spacing:2px;text-transform:uppercase;padding:8px 14px;border-radius:2px;border:2px solid #1A1A1A;background:transparent;cursor:pointer;transition:all 0.15s;color:#1A1A1A;}
-.share-btn:hover{background:#1A1A1A;color:#F5F0E8;}
-.share-btn.copied{background:var(--ac,#C8102E);border-color:var(--ac,#C8102E);color:#fff;}
+.share-btn{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:11px;letter-spacing:3px;text-transform:uppercase;padding:8px 14px;border-radius:2px;border:1.5px solid currentColor;background:transparent;cursor:pointer;transition:all 0.15s;}
+.share-btn:hover{background:#1A1A1A!important;color:#F5F0E8!important;border-color:#1A1A1A!important;}
+.share-btn.copied{background:var(--ac,#C8102E)!important;border-color:var(--ac,#C8102E)!important;color:#fff!important;}
 .share-banner{background:#1A1A1A;color:#F5F0E8;display:flex;align-items:center;justify-content:space-between;padding:10px 20px;font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:1px;}
 .share-banner-cta{color:var(--ac,#C8102E);font-weight:900;letter-spacing:2px;text-decoration:none;text-transform:uppercase;}
 .share-banner-cta:hover{text-decoration:underline;}
@@ -792,6 +792,7 @@ function applyColor(c) {
   ['a-vlbl','fu-title'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.color=c;});
   const bgh=document.getElementById('a-bghdr');if(bgh)bgh.style.background=c;
   const nb=document.getElementById('a-nbtn');if(nb){nb.style.color=c;nb.style.border=`1.5px solid ${c}`;}
+  const sb=document.getElementById('share-btn');if(sb){sb.style.color=c;sb.style.border=`1.5px solid ${c}`;}
   const av=document.getElementById('a-verified');if(av)av.style.background=c;
   const dv=document.getElementById('d-val');if(dv)dv.style.color=c;
   document.querySelectorAll('.fu-chip').forEach(el=>{el.style.borderColor=c;el.style.color=c;});
