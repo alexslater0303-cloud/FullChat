@@ -959,31 +959,31 @@ function tryProgressiveRender(){
   }
 }
 
-async function fetchMediaAndReveal(prompt) {
-  if(!finalArticle){await delay(2000);go('s-prompt');return;}
-
-  // Get car list from either single or comparison
-  const cars = finalArticle.articleType==='single'
-    ? [finalArticle.car]
-    : (finalArticle.cars||[]);
-
+async function fetchMedia(cars) {
   const carList = cars.map(c=>({
     make:c.make, model:c.model,
     year:c.year, bodyStyle:c.bodyStyle,
     yearFrom:c.yearFrom, yearTo:c.yearTo,
     generation:c.generation,
   }));
-
-  // Fetch images and YouTube in parallel
   const [imgData, ytData] = await Promise.all([
     fetch('/api/images',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cars:carList})})
       .then(r=>r.json()).catch(()=>({})),
     fetch('/api/youtube',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cars:carList})})
       .then(r=>r.json()).catch(()=>({}))
   ]);
-
   if(imgData.results) imgData.results.forEach((r,i)=>{galleries[i]={photos:r.photos||[],current:0};});
   if(ytData.results)  ytData.results.forEach((r,i)=>{if(r.video)ytVideos[i]=r.video;});
+}
+
+async function fetchMediaAndReveal(prompt) {
+  if(!finalArticle){await delay(2000);go('s-prompt');return;}
+
+  const cars = finalArticle.articleType==='single'
+    ? [finalArticle.car]
+    : (finalArticle.cars||[]);
+
+  await fetchMedia(cars);
 
   await delay(600);
 
@@ -1374,6 +1374,7 @@ async function loadSharedArticle(id) {
     depth = data.depth || 1;
     const p = PERSONAS[persona] || PERSONAS.provocateur;
     applyColor(p.color);
+    // Render immediately, then fetch media and re-render with images/video
     renderArticle(finalArticle, articleIntent);
     document.getElementById('share-banner').style.display = 'flex';
     document.getElementById('share-btn').style.display = 'none';
@@ -1381,6 +1382,11 @@ async function loadSharedArticle(id) {
     document.getElementById('feedback-bar').style.display = 'none';
     document.querySelector('.fu-section').style.display = 'none';
     go('s-article');
+    // Fetch media in background, re-render once loaded
+    const cars = finalArticle.articleType === 'single'
+      ? [finalArticle.car]
+      : (finalArticle.cars || []);
+    fetchMedia(cars).then(() => renderArticle(finalArticle, articleIntent));
   } catch(e) {
     console.error('Failed to load shared article:', e.message);
     go('s-splash');
