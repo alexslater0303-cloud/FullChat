@@ -731,7 +731,7 @@ async function buildChips() {
   try {
     const r = await fetch('/api/chips');
     const json = await r.json();
-    console.log('[chips]', json.source, json.chips);
+    console.log('[chips] source:', json.source, '| error:', json.error || 'none', '| chips:', json.chips);
     if (Array.isArray(json.chips) && json.chips.length) { renderChips(json.chips); return; }
     throw new Error('empty response');
   } catch(e) {
