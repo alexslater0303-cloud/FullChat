@@ -1322,6 +1322,7 @@ function emailErrorReport(e) {
 }
 
 async function startPipeline(customPrompt) {
+  const catEl0=document.getElementById('a-cat'); if(catEl0) delete catEl0.dataset.cache;
   const promptVal = customPrompt || document.getElementById('p-input').value.trim();
   if (!promptVal) { document.getElementById('p-input').focus(); return; }
   finalArticle=null; articleIntent='comparison'; convo=[]; galleries={}; ytVideos={}; ytExpanded={}; currentHistoryId=null;
@@ -1379,6 +1380,7 @@ async function startPipeline(customPrompt) {
 
             // Store article when it arrives
             if(data.article){ finalArticle=data.article; }
+            if(data.fromCache){ const ce=document.getElementById('a-cat'); if(ce) ce.dataset.cache='1'; }
 
             if(currentEvent==='error'||data.error){
               stopTicker();
@@ -1494,7 +1496,9 @@ function renderArticle(a, intent) {
     heroOv.style.background = `linear-gradient(to top, ${c}F0 0%, ${c}BB 30%, ${c}55 60%, transparent 100%)`;
   }
 
-  document.getElementById('a-cat').textContent=`${p.label} · Generated Feature`;
+  const catEl=document.getElementById('a-cat');
+  const fromCache=catEl&&catEl.dataset.cache==='1';
+  catEl.textContent=`${p.label} · Generated Feature${fromCache?' · ⚡ Instant':''}` ;
   document.getElementById('a-title').textContent=a.headline||'';
   document.getElementById('a-deck').textContent=a.deck||'';
   document.getElementById('a-ptag').textContent=p.label;

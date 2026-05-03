@@ -396,7 +396,91 @@ module.exports = async (req, res) => {
     }
   }
 
-  // ── ARTICLE — STREAMING ───────────────────────────────────────────────────
+  // ── ARTICLE CACHE CHECK ──────────────────────────────────────────────────────
+  if (mode === 'article') {
+    try {
+      const CACHE_TTL_DAYS = 7;
+      const cacheExpiry = new Date(Date.now() - CACHE_TTL_DAYS * 24 * 60 * 60 * 1000).toISOString();
+      const normPrompt = prompt.trim();
+      const { data: cached } = await supabase
+        .from('shared_articles')
+        .select('id, article, article_type')
+        .eq('persona', persona)
+        .eq('depth', Number(depth))
+        .ilike('prompt', normPrompt)
+        .gte('created_at', cacheExpiry)
+        .not('article', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (cached && cached.article) {
+        // Cache hit — serve instantly via SSE, still charge full article cost
+        const cacheCost = cost;
+        if (tester.tokens_remaining < cacheCost) {
+          return res.status(402).json({ error: 'Out of tokens — ask Alex for a top up!', tokens_remaining: tester.tokens_remaining });
+        }
+
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Connection', 'keep-alive');
+        res.setHeader('X-Accel-Buffering', 'no');
+        res.flushHeaders();
+
+        const sendC = (event, data) => res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+        const cachedIntent = cached.article_type || cached.article?.articleType || 'comparison';
+
+        sendC('step', { step:'research', state:'done', status:'Loaded from cache ⚡', usedGemini:false, intent: cachedIntent });
+        sendC('step', { step:'write',    state:'done', status:'Article ready ✓' });
+        sendC('step', { step:'fact',     state:'done', status:'Verified ✓' });
+
+        // Save a new history entry for this user
+        let historyId = null;
+        try {
+          const { genHistoryId: _gen } = { genHistoryId: () => {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+            let id = ''; for (let i=0;i<8;i++) id+=chars[Math.floor(Math.random()*chars.length)]; return id;
+          }};
+          historyId = _gen();
+          await supabase.from('shared_articles').insert({
+            id: historyId,
+            invite_code: inviteCode || null,
+            persona, prompt, depth: Number(depth),
+            article_type: cachedIntent,
+            article: cached.article,
+            created_at: new Date().toISOString(),
+          });
+        } catch(_) {}
+
+        sendC('article', {
+          article: cached.article,
+          usedGemini: false,
+          intent: cachedIntent,
+          tokens_remaining: tester.tokens_remaining - cacheCost,
+          fromCache: true,
+        });
+        sendC('done', { historyId });
+
+        await supabase.from('testers').update({
+          tokens_remaining: tester.tokens_remaining - cacheCost,
+          tokens_used: (tester.tokens_used || 0) + cacheCost,
+        }).eq('id', tester.id);
+
+        await supabase.from('generations').insert({
+          tester_id: tester.id, prompt, persona,
+          tokens_used: cacheCost,
+          article_headline: cached.article?.headline || null,
+        });
+
+        res.end();
+        return;
+      }
+    } catch (cacheErr) {
+      console.warn('Cache check failed, proceeding with generation:', cacheErr.message);
+    }
+  }
+
+    // ── ARTICLE — STREAMING ───────────────────────────────────────────────────
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
