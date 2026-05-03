@@ -178,6 +178,38 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 .share-banner-cta{color:var(--ac,#C8102E);font-weight:900;letter-spacing:2px;text-decoration:none;text-transform:uppercase;}
 .share-banner-cta:hover{text-decoration:underline;}
 
+/* Admin dashboard */
+#s-admin{background:#F5F0E8;overflow-y:auto;}
+.adm-hdr{background:#1A1A1A;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;}
+.adm-hdr-logo{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:20px;color:#F5F0E8;letter-spacing:-0.5px;}
+.adm-hdr-sub{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#888;}
+.adm-body{padding:24px;max-width:900px;margin:0 auto;}
+.adm-section{margin-bottom:32px;}
+.adm-section-title{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:12px;letter-spacing:4px;text-transform:uppercase;color:#AAA;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #D8D3CB;}
+.adm-stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:8px;}
+.adm-stat{background:#fff;border:1px solid #D8D3CB;border-radius:4px;padding:14px 16px;text-align:center;}
+.adm-stat-val{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:32px;line-height:1;color:#1A1A1A;}
+.adm-stat-lbl{font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#AAA;margin-top:4px;}
+.adm-tester-card{background:#fff;border:1px solid #D8D3CB;border-radius:4px;padding:14px 16px;margin-bottom:8px;display:flex;align-items:center;gap:16px;}
+.adm-tester-name{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:16px;color:#1A1A1A;flex:1;}
+.adm-tester-code{font-family:monospace;font-size:11px;color:#AAA;background:#F5F0E8;padding:2px 6px;border-radius:2px;}
+.adm-tester-stat{text-align:center;min-width:54px;}
+.adm-tester-stat-val{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:18px;color:#1A1A1A;line-height:1;}
+.adm-tester-stat-lbl{font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#AAA;}
+.adm-tester-inactive{opacity:0.4;}
+.adm-fb-row{background:#fff;border:1px solid #D8D3CB;border-radius:4px;padding:12px 14px;margin-bottom:8px;}
+.adm-fb-top{display:flex;align-items:center;gap:10px;margin-bottom:4px;}
+.adm-fb-rating{font-size:16px;}
+.adm-fb-meta{font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:#AAA;flex:1;}
+.adm-fb-persona{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;letter-spacing:2px;text-transform:uppercase;}
+.adm-fb-headline{font-size:13px;color:#1A1A1A;font-weight:500;margin-bottom:3px;}
+.adm-fb-comment{font-size:12px;color:#666;font-style:italic;}
+.adm-fb-prompt{font-size:11px;color:#AAA;margin-top:3px;}
+.adm-back{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;letter-spacing:3px;text-transform:uppercase;padding:7px 12px;border-radius:2px;cursor:pointer;color:#F5F0E8;background:#1A1A1A;border:none;transition:opacity 0.2s;}
+.adm-back:hover{opacity:0.75;}
+.adm-loading{text-align:center;padding:60px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:11px;letter-spacing:4px;text-transform:uppercase;color:#AAA;}
+.adm-persona-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px;}
+.adm-persona-pill{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;letter-spacing:2px;text-transform:uppercase;padding:5px 10px;border-radius:2px;background:#1A1A1A;color:#F5F0E8;}
 /* Error screen */
 #s-error{background:#F5F0E8;}
 .err-wrap{padding:32px 24px;max-width:680px;margin:0 auto;}
@@ -457,7 +489,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 <div id="s-splash" class="screen">
   <div class="rule"></div>
   <div class="splash-inner">
-    <div class="splash-logo"><span class="wm">FULL<span id="sp-span">CHAT</span></span><span class="tl">AI-powered motoring journalism</span></div>
+    <div class="splash-logo" onmousedown="adminPressStart()" onmouseup="adminPressEnd()" ontouchstart="adminPressStart(event)" ontouchend="adminPressEnd()"><span class="wm">FULL<span id="sp-span">CHAT</span></span><span class="tl">AI-powered motoring journalism</span></div>
     <p class="choose-lbl">Choose your voice</p>
     <div class="persona-list" id="persona-list"></div>
     <button class="hist-btn" onclick="openHistory()">
@@ -533,6 +565,19 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 </div>
 
 <!-- ARTICLE -->
+<div id="s-admin" class="screen">
+  <div class="adm-hdr">
+    <div>
+      <div class="adm-hdr-logo">FULLCHAT · ADMIN</div>
+      <div class="adm-hdr-sub">Dashboard</div>
+    </div>
+    <button class="adm-back" onclick="go('s-splash')">← Exit</button>
+  </div>
+  <div class="adm-body" id="adm-body">
+    <div class="adm-loading">Loading...</div>
+  </div>
+</div>
+
 <div id="s-error" class="screen">
   <div class="err-wrap">
     <div class="err-badge">Generation Error</div>
@@ -1899,6 +1944,95 @@ async function askFollowUp(){
     thread.insertAdjacentHTML('beforeend',`<div class="msg-a"><div class="msg-abub">Connection error — try again.</div></div>`);
   }
   fuBusy=false;document.getElementById('fu-send').disabled=false;
+}
+
+// ── ADMIN ─────────────────────────────────────────────────────────────────────
+let _adminPressTimer = null;
+function adminPressStart() {
+  _adminPressTimer = setTimeout(() => openAdmin(), 1500);
+}
+function adminPressEnd() {
+  if (_adminPressTimer) { clearTimeout(_adminPressTimer); _adminPressTimer = null; }
+}
+
+async function openAdmin() {
+  const key = prompt('Admin key:');
+  if (!key) return;
+  go('s-admin');
+  document.getElementById('adm-body').innerHTML = '<div class="adm-loading">Loading dashboard...</div>';
+  try {
+    const r = await fetch('/api/admin?key=' + encodeURIComponent(key));
+    if (!r.ok) { document.getElementById('adm-body').innerHTML = '<div class="adm-loading">Access denied.</div>'; return; }
+    const d = await r.json();
+    renderAdminDashboard(d);
+  } catch(e) {
+    document.getElementById('adm-body').innerHTML = '<div class="adm-loading">Error loading dashboard.</div>';
+  }
+}
+
+function renderAdminDashboard(d) {
+  const s = d.summary;
+  const PERSONA_COLORS = { provocateur:'#C8102E', enthusiast:'#1B3A6B', pragmatist:'#1B6B3A', driver:'#2C3E50' };
+
+  // Summary stats
+  const statsHtml = `
+    <div class="adm-section">
+      <div class="adm-section-title">Overview</div>
+      <div class="adm-stat-grid">
+        <div class="adm-stat"><div class="adm-stat-val">${s.totalGenerations}</div><div class="adm-stat-lbl">Generations</div></div>
+        <div class="adm-stat"><div class="adm-stat-val">${s.totalTesters}</div><div class="adm-stat-lbl">Testers</div></div>
+        <div class="adm-stat"><div class="adm-stat-val">${s.totalTokens}</div><div class="adm-stat-lbl">Tokens Used</div></div>
+        <div class="adm-stat"><div class="adm-stat-val" style="color:#1B6B3A">${s.thumbsUp}</div><div class="adm-stat-lbl">👍 Ratings</div></div>
+        <div class="adm-stat"><div class="adm-stat-val" style="color:#C8102E">${s.thumbsDown}</div><div class="adm-stat-lbl">👎 Ratings</div></div>
+        <div class="adm-stat"><div class="adm-stat-val">${s.satisfactionPct !== null ? s.satisfactionPct + '%' : '—'}</div><div class="adm-stat-lbl">Satisfaction</div></div>
+      </div>
+    </div>`;
+
+  // Persona breakdown
+  const personaHtml = `
+    <div class="adm-section">
+      <div class="adm-section-title">By Persona</div>
+      <div class="adm-persona-bar">
+        ${Object.entries(d.personaCounts).sort((a,b)=>b[1]-a[1]).map(([name,count]) =>
+          `<div class="adm-persona-pill" style="background:${PERSONA_COLORS[name]||'#1A1A1A'}">${name} · ${count}</div>`
+        ).join('')}
+      </div>
+    </div>`;
+
+  // Tester cards
+  const testersHtml = `
+    <div class="adm-section">
+      <div class="adm-section-title">Testers</div>
+      ${d.testers.map(t => `
+        <div class="adm-tester-card ${t.active?'':'adm-tester-inactive'}">
+          <div>
+            <div class="adm-tester-name">${esc(t.name)}</div>
+            <div class="adm-tester-code">${esc(t.invite_code)}</div>
+          </div>
+          <div class="adm-tester-stat"><div class="adm-tester-stat-val">${t.generationCount}</div><div class="adm-tester-stat-lbl">Articles</div></div>
+          <div class="adm-tester-stat"><div class="adm-tester-stat-val">${t.tokens_used||0}</div><div class="adm-tester-stat-lbl">Used</div></div>
+          <div class="adm-tester-stat"><div class="adm-tester-stat-val" style="color:${(t.tokens_remaining||0)<5?'#C8102E':'#1B6B3A'}">${t.tokens_remaining||0}</div><div class="adm-tester-stat-lbl">Left</div></div>
+        </div>`).join('')}
+    </div>`;
+
+  // Feedback
+  const feedbackHtml = `
+    <div class="adm-section">
+      <div class="adm-section-title">Recent Feedback</div>
+      ${d.feedback.length ? d.feedback.map(f => `
+        <div class="adm-fb-row">
+          <div class="adm-fb-top">
+            <span class="adm-fb-rating">${f.rating==='up'?'👍':'👎'}</span>
+            <span class="adm-fb-persona" style="color:${PERSONA_COLORS[f.persona]||'#AAA'}">${f.persona||'—'}</span>
+            <span class="adm-fb-meta">${new Date(f.created_at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</span>
+          </div>
+          ${f.headline?`<div class="adm-fb-headline">${esc(f.headline)}</div>`:''}
+          ${f.comment?`<div class="adm-fb-comment">"${esc(f.comment)}"</div>`:''}
+          <div class="adm-fb-prompt">${esc(f.prompt||'')}</div>
+        </div>`).join('') : '<div class="adm-loading" style="padding:20px 0">No feedback yet</div>'}
+    </div>`;
+
+  document.getElementById('adm-body').innerHTML = statsHtml + personaHtml + testersHtml + feedbackHtml;
 }
 </script>
 <script src="/pdf.js"></script>
