@@ -192,6 +192,30 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 .share-banner-cta{color:var(--ac,#C8102E);font-weight:900;letter-spacing:2px;text-decoration:none;text-transform:uppercase;}
 .share-banner-cta:hover{text-decoration:underline;}
 
+
+/* VS Mode */
+.vs-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;}
+@media(max-width:600px){.vs-grid{grid-template-columns:1fr;}}
+.vs-car-card{background:#fff;border-radius:6px;border:2px solid #D8D3CB;padding:16px;position:relative;overflow:hidden;transition:border-color 0.2s;}
+.vs-car-card.vs-car-winner{border-width:2.5px;}
+.vs-winner-ribbon{position:absolute;top:12px;right:-22px;padding:4px 32px;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:9px;letter-spacing:3px;text-transform:uppercase;color:#fff;transform:rotate(35deg);pointer-events:none;}
+.vs-car-num{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:28px;line-height:1;margin-bottom:4px;}
+.vs-battlegrounds{margin:8px 0 24px;}
+.vs-scorecard{display:flex;align-items:center;gap:12px;margin:16px 0 24px;}
+.vs-score-half{flex:1;text-align:center;padding:14px 10px;border-radius:4px;border:1.5px solid #D8D3CB;transition:all 0.2s;}
+.vs-score-half.vs-score-win{border-width:2px;}
+.vs-score-make{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:13px;letter-spacing:1px;text-transform:uppercase;color:#1A1A1A;margin-bottom:4px;}
+.vs-score-num{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:44px;line-height:1;}
+.vs-score-lbl{font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#AAA;margin-top:2px;}
+.vs-score-div{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:22px;color:#D8D3CB;flex-shrink:0;}
+.vs-bg-row{border-bottom:1px solid #E8E3DB;padding:14px 0;}
+.vs-bg-row:last-child{border-bottom:none;}
+.vs-bg-cat{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:13px;letter-spacing:2px;text-transform:uppercase;color:#1A1A1A;margin-bottom:6px;}
+.vs-bg-analysis{font-family:'Barlow',sans-serif;font-size:13px;color:#555;line-height:1.5;margin-bottom:10px;}
+.vs-bg-winner{display:flex;align-items:center;gap:8px;}
+.vs-bg-pill{padding:5px 12px;border-radius:2px;border:1.5px solid #D8D3CB;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#888;transition:all 0.15s;}
+.vs-bg-vs{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:11px;color:#CCC;letter-spacing:1px;}
+
 /* Admin dashboard */
 #s-admin{background:#F5F0E8;overflow-y:auto;}
 .adm-hdr{background:#1A1A1A;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;}
@@ -1451,11 +1475,14 @@ function renderArticle(a, intent) {
   document.getElementById('a-intro').textContent=a.intro||'';
 
   const ib=document.getElementById('a-intent');
-  if(ib){ib.textContent=intent==='single'?'Deep Dive':'Comparison';ib.style.display='inline-block';}
+  const intentLabel = intent==='single'?'Deep Dive':intent==='vs'?'VS':' Comparison';
+  if(ib){ib.textContent=intentLabel;ib.style.display='inline-block';}
 
   const main=document.getElementById('article-main');
   if(intent==='single'&&a.car){
     main.innerHTML=renderSingleCar(a,c);
+  } else if(intent==='vs'&&a.cars&&a.cars.length===2){
+    main.innerHTML=renderVS(a,c);
   } else {
     main.innerHTML=renderComparison(a,c);
   }
@@ -1547,6 +1574,84 @@ function renderSingleCar(a,c){
     ${renderRelatedPrompts(a,c)}
     ${renderSources(a,c)}
     ${renderFollowUp(a)}`;
+}
+
+
+function renderVS(a, c) {
+  const [car1, car2] = a.cars;
+  const badge1 = BADGE[car1.badge] || BADGE['Solid Value'];
+  const badge2 = BADGE[car2.badge] || BADGE['Solid Value'];
+  const battlegrounds = a.battlegrounds || [];
+  const winner = typeof a.winner === 'number' ? a.winner : -1;
+
+  // Tally battleground wins
+  const wins = [0, 0];
+  battlegrounds.forEach(b => { if (b.winner === 0) wins[0]++; else if (b.winner === 1) wins[1]++; });
+
+  function carCard(car, idx) {
+    const badge = idx === 0 ? badge1 : badge2;
+    const urls = car.marketplaceUrls || {};
+    const parasText = (car.copy || car.fullReview || '');
+    const paras = parasText.split('\n').filter(Boolean).map(p => '<p>' + p + '</p>').join('');
+    const isWinner = winner === idx;
+    return '<div class="vs-car-card' + (isWinner ? ' vs-car-winner' : '') + '" style="' + (isWinner ? 'border-color:' + c + ';' : '') + '">'
+      + (isWinner ? '<div class="vs-winner-ribbon" style="background:' + c + '">WINNER</div>' : '')
+      + '<div class="vs-car-num" style="color:' + c + '">' + String(idx + 1).padStart(2, '0') + '</div>'
+      + '<div class="car-make">' + esc(car.make) + '</div>'
+      + '<div class="car-model">' + esc(car.model) + '</div>'
+      + genLabel(car)
+      + '<div class="car-badge-pill" style="background:' + badge.bg + ';color:' + badge.c + '">' + esc(car.badge) + '</div>'
+      + '<div class="gallery-wrap"><div class="gallery-box" id="gbox-' + idx + '"><div class="gallery-loading" id="gload-' + idx + '">Loading photos...</div></div><div class="gallery-credit" id="gcredit-' + idx + '">Photos via Pexels</div></div>'
+      + (ytVideos[idx] ? renderYouTube(idx) : '')
+      + '<div class="car-stats-9">'
+      + [1,2,3,4,5,6,7,8,9].map(n => car['stat' + n + '_val'] ? '<div class="stat-item"><span class="stat-val">' + esc(car['stat' + n + '_val']) + '</span><span class="stat-lbl">' + esc(car['stat' + n + '_label'] || '') + '</span></div>' : '').join('')
+      + '</div>'
+      + '<div class="car-div"></div>'
+      + '<div class="full-review">' + paras + '</div>'
+      + (car.pros && car.cons ? '<div class="pros-cons"><div class="pros-box"><div class="pros-ttl">The Good</div><ul class="pros-list">' + (car.pros || []).map(p => '<li>' + esc(p) + '</li>').join('') + '</ul></div><div class="cons-box"><div class="cons-ttl">The Bad</div><ul class="cons-list">' + (car.cons || []).map(con => '<li>' + esc(con) + '</li>').join('') + '</ul></div></div>' : '')
+      + (car.quote ? '<div class="car-qblock" style="border-left-color:' + c + '"><div class="car-qtext">"' + esc(car.quote) + '"</div>' + (car.quoteAttribution ? '<div class="car-qattr" style="color:' + c + '">— ' + esc(car.quoteAttribution) + '</div>' : '') + '</div>' : '')
+      + renderMarketplaceLinks(urls, c)
+      + '</div>';
+  }
+
+  function battlegroundRows() {
+    return battlegrounds.map((b, i) => {
+      const w = b.winner;
+      return '<div class="vs-bg-row">'
+        + '<div class="vs-bg-cat">' + esc(b.category) + '</div>'
+        + '<div class="vs-bg-analysis">' + esc(b.analysis) + '</div>'
+        + '<div class="vs-bg-winner">'
+        + '<span class="vs-bg-pill vs-bg-car1' + (w === 0 ? ' vs-bg-active" style="background:' + c + ';color:#fff;border-color:' + c + '"' : '"') + '>' + esc(car1.make) + '</span>'
+        + '<span class="vs-bg-vs">v</span>'
+        + '<span class="vs-bg-pill vs-bg-car2' + (w === 1 ? ' vs-bg-active" style="background:' + c + ';color:#fff;border-color:' + c + '"' : '"') + '>' + esc(car2.make) + '</span>'
+        + '</div>'
+        + '</div>';
+    }).join('');
+  }
+
+  const scoreDraw = wins[0] === wins[1];
+
+  return '<div class="vs-grid">' + carCard(car1, 0) + carCard(car2, 1) + '</div>'
+    + '<div class="vs-battlegrounds">'
+    + '<div class="srule"><div class="srule-line"></div><div class="srule-text">Battlegrounds</div><div class="srule-line"></div></div>'
+    + '<div class="vs-scorecard">'
+    + '<div class="vs-score-half' + (winner === 0 ? ' vs-score-win" style="background:' + c + '20;border-color:' + c + '"' : '"') + '>'
+    + '<div class="vs-score-make">' + esc(car1.make) + '</div>'
+    + '<div class="vs-score-num" style="color:' + (winner === 0 ? c : '#AAA') + '">' + wins[0] + '</div>'
+    + '<div class="vs-score-lbl">wins</div>'
+    + '</div>'
+    + '<div class="vs-score-div">–</div>'
+    + '<div class="vs-score-half' + (winner === 1 ? ' vs-score-win" style="background:' + c + '20;border-color:' + c + '"' : '"') + '>'
+    + '<div class="vs-score-make">' + esc(car2.make) + '</div>'
+    + '<div class="vs-score-num" style="color:' + (winner === 1 ? c : '#AAA') + '">' + wins[1] + '</div>'
+    + '<div class="vs-score-lbl">wins</div>'
+    + '</div>'
+    + '</div>'
+    + battlegroundRows()
+    + '</div>'
+    + '<div class="verdict"><div class="verdict-lbl" style="color:' + c + '">The Verdict</div><div class="verdict-txt">' + esc(a.verdict || '') + '</div></div>'
+    + renderRelatedPrompts(a, c)
+    + renderSources(a, c);
 }
 
 function renderComparison(a,c){

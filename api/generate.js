@@ -13,8 +13,10 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const COSTS = { article: 40, followup: 10 };
 
 // ── Intent detection ──────────────────────────────────────────────────────────
-// Returns 'single' or 'comparison'
+// Returns 'single', 'comparison', or 'vs'
 async function detectIntent(prompt) {
+  // Fast path: explicit vs/versus pattern between two car names
+  if (/\bvs\.?\b|\bversus\b|\bv\/\b/i.test(prompt)) return 'vs';
   try {
     const r = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
@@ -185,6 +187,55 @@ function comparisonSchema(depth) {
   };
 }
 
+
+// ── VS Schema ─────────────────────────────────────────────────────────────────
+function vsSchema(depth) {
+  const copy = depth === 0 ? '3-4 paragraphs' : depth === 1 ? '5-6 paragraphs' : '7-8 paragraphs with full technical depth';
+  return `{
+  "articleType": "vs",
+  "headline": "CAR ONE VS CAR TWO: PUNCHY UPPERCASE BATTLE HEADLINE",
+  "deck": "One sentence that captures the rivalry",
+  "intro": "2-3 sentences setting the scene for this specific battle",
+  "cars": [
+    {
+      "make": "Make", "model": "Model", "year": "e.g. 2021-present",
+      "searchMake": "Base brand only",
+      "searchModel": "Base model only — NO variant/trim/suffix",
+      "yearFrom": 2021, "yearTo": 2026,
+      "generation": "e.g. G80 / FL5 / Mk8 — be specific",
+      "bodyStyle": "e.g. saloon",
+      "isNew": false,
+      "badge": "e.g. Driver's Choice",
+      "stat1_val": "£52,000", "stat1_label": "From (used)",
+      "stat2_val": "510hp",   "stat2_label": "Power",
+      "stat3_val": "3.9s",   "stat3_label": "0-62mph",
+      "stat4_val": "£74,000","stat4_label": "New price",
+      "stat5_val": "26mpg",  "stat5_label": "Economy",
+      "stat6_val": "2,993cc","stat6_label": "Engine",
+      "copy": "${copy} — in-depth analysis of this car's character, strengths and weaknesses in the context of this battle",
+      "pros": ["Pro 1", "Pro 2", "Pro 3"],
+      "cons": ["Con 1", "Con 2"],
+      "quote": "Real attributed quote from a known automotive journalist",
+      "quoteAttribution": "Journalist Name, Publication"
+    }
+  ],
+  "battlegrounds": [
+    { "category": "Performance", "winner": 0, "analysis": "2-3 sentences — why this car wins this specific category" },
+    { "category": "Daily Usability", "winner": 1, "analysis": "..." },
+    { "category": "Driver Involvement", "winner": 0, "analysis": "..." },
+    { "category": "Running Costs", "winner": 1, "analysis": "..." },
+    { "category": "Value for Money", "winner": 0, "analysis": "..." }
+  ],
+  "winner": 0,
+  "verdict": "2-3 definitive paragraphs — the overall winner and why, acknowledging what the loser does better",
+  "relatedPrompts": [
+    "A natural follow-on prompt",
+    "Second related prompt",
+    "Third related prompt"
+  ]
+}`;
+}
+
 // ── Gemini research ───────────────────────────────────────────────────────────
 async function geminiResearch(prompt) {
   const KEY = process.env.GEMINI_API_KEY;
@@ -343,7 +394,8 @@ module.exports = async (req, res) => {
       detectIntent(prompt),
       geminiResearch(prompt)
     ]);
-    send('step', { step:'research', state:'done', status:`${intent==='single'?'Deep dive':'Comparison'} detected · ${research?'Live data gathered ✓':'Research complete ✓'}`, usedGemini:!!research, intent });
+    const intentLabel = intent==='single'?'Deep dive':intent==='vs'?'VS battle':'Comparison';
+    send('step', { step:'research', state:'done', status:`${intentLabel} detected · ${research?'Live data gathered ✓':'Research complete ✓'}`, usedGemini:!!research, intent });
 
     // Step 2 — Write
     send('step', { step:'write', state:'active', status:'Writing your feature...' });
@@ -356,6 +408,9 @@ module.exports = async (req, res) => {
     if (intent === 'single') {
       schema = singleCarSchema(Number(depth));
       systemNote = `Write a long-form deep dive review about: "${prompt}". This is a single car feature — go deep, be thorough, include real ownership experience, not a comparison list.`;
+    } else if (intent === 'vs') {
+      schema = vsSchema(Number(depth));
+      systemNote = `Write a Full Chat VS battle feature about: "${prompt}". This is an EXACT HEAD-TO-HEAD between exactly TWO cars. Include precisely 2 cars in the "cars" array. Write 5 battleground categories judging which car wins each one (winner: 0 means first car wins, winner: 1 means second car wins). Declare an overall winner (0 or 1). Both cars must be genuinely available in the UK used market. Go deep on each car — more depth than a regular comparison, less than a full single-car deep dive.`;
     } else {
       const cs = comparisonSchema(Number(depth));
       // Allow prompt to override car count e.g. "top 10 budget hatchbacks"
@@ -369,7 +424,9 @@ module.exports = async (req, res) => {
 
     const maxTokens = intent==='single'
       ? (depth===0?3500:depth===1?5500:8000)
-      : (depth===0?5500:depth===1?8000:12000);
+      : intent==='vs'
+        ? (depth===0?6000:depth===1?9000:13000)
+        : (depth===0?5500:depth===1?8000:12000);
 
     let fullText = '';
 
@@ -444,6 +501,10 @@ ${schema}`
     } else if (article.cars) {
       article.cars = article.cars.map(addMarketplaceUrls);
     }
+    // VS: enforce exactly 2 cars
+    if (article.articleType === 'vs' && article.cars) {
+      article.cars = article.cars.slice(0, 2);
+    }
 
     // ── Step 3: Independent Gemini fact-check ────────────────────────────────
     const GEMINI_KEY = process.env.GEMINI_API_KEY;
@@ -494,7 +555,7 @@ If all cars pass, return {"passedAll": true, "errors": []}`;
         const firstPersonPattern = /\b(I drove|I found|I tested|I noticed|I felt|I tried|I spent|I pushed|I took|I've driven|I've lived|I've spent|I've had|in my (time|experience|hands|ownership)|behind the wheel[,\s]+I|my test|my time with|my week with|my month with|during my)\b/gi;
         const bodyFields = article.articleType === 'single'
           ? [article.car?.fullReview, article.car?.copy, article.intro]
-          : [...(article.cars||[]).map(c => c.copy), article.intro];
+          : [...(article.cars||[]).map(c => c.copy || c.fullReview), article.intro, ...(article.battlegrounds||[]).map(b => b.analysis)];
         bodyFields.filter(Boolean).forEach(text => {
           const matches = text.match(firstPersonPattern);
           if (matches) voiceErrors.push(`First-person driving language found: "${matches[0]}" — rewrite in second or third person (the author has not driven these cars)`);
