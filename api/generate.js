@@ -15,16 +15,27 @@ const COSTS = { article: 40, followup: 10 };
 // ── Intent detection ──────────────────────────────────────────────────────────
 // Returns 'single', 'comparison', or 'vs'
 async function detectIntent(prompt) {
-  // Fast path: explicit vs/versus pattern between two car names
-  if (/\bvs\.?\b|\bversus\b|\bv\/\b/i.test(prompt)) return 'vs';
+  const p = prompt.trim();
+
+  // Fast path 1: explicit vs/versus → vs
+  if (/\bvs\.?\b|\bversus\b|\bv\/\b/i.test(p)) return 'vs';
+
+  // Fast path 2: clearly a comparison — list/recommendation keywords
+  if (/\b(best|top|worst|cheapest|fastest|recommended|alternatives?|rivals?|competitors?|comparison|compare|comparing|recommend|should i buy|which one|pick between|choices?|options?)\b/i.test(p)) return 'comparison';
+
+  // Fast path 3: clearly a single car — looks like just a make/model/generation
+  // e.g. "Ford Focus ST", "BMW M3 Competition review", "2023 Golf GTI deep dive"
+  if (/^(\d{4}\s+)?[a-z0-9\s-]{2,40}(review|deep dive|guide|worth it|reliable|good|bad|any good)?$/i.test(p) && !/\band\b|,/.test(p)) return 'single';
+
+  // Fallback: ask Haiku — cheap binary classification
   try {
     const r = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-haiku-4-5-20251001',
       max_tokens: 20,
       system: 'You are an intent classifier. Reply with exactly one word: "single" or "comparison".',
       messages: [{ role: 'user', content:
         `Is this prompt asking about a single specific car, or comparing multiple cars?
-Prompt: "${prompt}"
+Prompt: "${p}"
 Reply "single" if it's about one specific make/model.
 Reply "comparison" if it's asking for a list, best of, recommendations, or comparing options.` }]
     });
@@ -381,7 +392,7 @@ module.exports = async (req, res) => {
   if (mode === 'followup') {
     try {
       const r = await anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514', max_tokens: 400,
+        model: 'claude-haiku-4-5-20251001', max_tokens: 400,
         system: p.systemPrompt + (context ? `\n\n${context}` : ''),
         messages: [...history.map(m=>({role:m.role,content:m.content})), {role:'user',content:prompt}]
       });
@@ -685,7 +696,7 @@ If all cars pass, return {"passedAll": true, "errors": []}`;
 
           // Ask Claude to rewrite the article fixing the specific errors
           const rewriteRes = await anthropic.messages.create({
-            model: 'claude-sonnet-4-20250514',
+            model: 'claude-haiku-4-5-20251001',
             max_tokens: 4000,
             system: p.systemPrompt,
             messages: [{
