@@ -1741,6 +1741,21 @@ async function loadHistoryArticle(id) {
     applyColor(C());
     currentHistoryId = id;
     galleries = {}; ytVideos = {}; ytExpanded = {};
+    // Restore conversation thread
+    convo = (data.article && data.article._convo) || [];
+    const thread = document.getElementById('convo');
+    thread.innerHTML = '';
+    if (convo.length) {
+      const p2 = P(); const c2 = C();
+      convo.forEach(m => {
+        if (m.role === 'user') {
+          thread.insertAdjacentHTML('beforeend', `<div class="msg-u"><div class="msg-ubub" style="background:${c2}">${esc(m.content)}</div></div>`);
+        } else {
+          thread.insertAdjacentHTML('beforeend', `<div class="msg-a"><div class="msg-albl" style="color:${c2}">${p2.name.split(' ')[1]}</div><div class="msg-abub">${esc(m.content)}</div></div>`);
+        }
+      });
+    }
+    buildFuChips();
     renderArticle(finalArticle, articleIntent);
     resetFeedback();
 
@@ -1777,6 +1792,14 @@ async function askFollowUp(){
     document.getElementById('thinking').style.display='none';
     thread.insertAdjacentHTML('beforeend',`<div class="msg-a"><div class="msg-albl" style="color:${c}">${p.name.split(' ')[1]}</div><div class="msg-abub">${esc(answer)}</div></div>`);
     thread.scrollIntoView({behavior:'smooth',block:'end'});
+    // Persist conversation thread
+    if (currentHistoryId) {
+      fetch('/api/convo', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: currentHistoryId, convo })
+      }).catch(() => {});
+    }
   }catch{
     document.getElementById('thinking').style.display='none';
     thread.insertAdjacentHTML('beforeend',`<div class="msg-a"><div class="msg-abub">Connection error — try again.</div></div>`);
