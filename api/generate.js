@@ -190,7 +190,7 @@ function comparisonSchema(depth) {
 
 // ── VS Schema ─────────────────────────────────────────────────────────────────
 function vsSchema(depth) {
-  const copy = depth === 0 ? '3-4 paragraphs' : depth === 1 ? '5-6 paragraphs' : '7-8 paragraphs with full technical depth';
+  const copy = depth === 0 ? '2-3 paragraphs' : depth === 1 ? '3-4 paragraphs' : '5-6 paragraphs with full technical depth';
   return `{
   "articleType": "vs",
   "headline": "CAR ONE VS CAR TWO: PUNCHY UPPERCASE BATTLE HEADLINE",
@@ -447,7 +447,7 @@ CRITICAL — VARIANT MATCHING: You must compare equivalent variants at the same 
     const maxTokens = intent==='single'
       ? (depth===0?3500:depth===1?5500:8000)
       : intent==='vs'
-        ? (depth===0?6000:depth===1?9000:13000)
+        ? (depth===0?8000:depth===1?14000:18000)
         : (depth===0?5500:depth===1?8000:12000);
 
     let fullText = '';
