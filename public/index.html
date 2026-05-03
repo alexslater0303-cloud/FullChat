@@ -1133,8 +1133,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // Check for shared article link
   const shareId = new URLSearchParams(window.location.search).get('share');
   if (shareId) { loadSharedArticle(shareId); return; }
-  const saved = sessionStorage.getItem('fc_code');
-  if (saved) { inviteCode=saved; testerName=sessionStorage.getItem('fc_name')||''; refreshGreeting(); go('s-splash'); }
+  const saved = localStorage.getItem('fc_code');
+  if (saved) { inviteCode=saved; testerName=localStorage.getItem('fc_name')||''; refreshGreeting(); go('s-splash'); }
   drawRevCounter(0,'idle','1ST');
 });
 
@@ -1237,7 +1237,7 @@ async function submitInvite() {
     const data=await res.json();
     if(!res.ok||!data.valid){err.textContent=data.error||'Invalid code — check with Alex';btn.textContent='LET ME IN →';btn.disabled=false;return;}
     inviteCode=code;testerName=data.name;
-    sessionStorage.setItem('fc_code',code);sessionStorage.setItem('fc_name',data.name);
+    localStorage.setItem('fc_code',code);localStorage.setItem('fc_name',data.name);
     refreshGreeting();go('s-splash');
   }catch{err.textContent='Connection error — try again';btn.textContent='LET ME IN →';btn.disabled=false;}
 }
