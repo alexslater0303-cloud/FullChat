@@ -1606,7 +1606,7 @@ function renderRelatedPrompts(a, c) {
     <div class="related-prompts">
       <div class="related-prompts-hdr">Read Next</div>
       ${prompts.map(p => `
-        <button class="related-prompt-chip" onclick="startPipeline(${JSON.stringify(p)})">
+        <button class="related-prompt-chip" data-prompt="${esc(p)}" onclick="startPipeline(this.dataset.prompt)">
           <span>${esc(p)}</span>
           <span class="related-prompt-arrow">→</span>
         </button>`).join('')}
