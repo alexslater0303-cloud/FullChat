@@ -256,7 +256,16 @@ Be brutally honest. Use specific numbers throughout. Vague generalisations are u
     );
     if (!r.ok) return null;
     const d = await r.json();
-    return d.candidates?.[0]?.content?.parts?.[0]?.text || null;
+    const text = d.candidates?.[0]?.content?.parts?.[0]?.text || null;
+    if (!text) return null;
+    // Extract grounding sources from Gemini search metadata
+    const chunks = d.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+    const sources = chunks
+      .map(c => ({ title: c.web?.title || '', url: c.web?.uri || '' }))
+      .filter(s => s.url)
+      .filter((s, i, arr) => arr.findIndex(x => x.url === s.url) === i) // dedupe
+      .slice(0, 8);
+    return { text, sources };
   } catch { return null; }
 }
 
@@ -340,7 +349,7 @@ module.exports = async (req, res) => {
     send('step', { step:'write', state:'active', status:'Writing your feature...' });
 
     const researchBlock = research
-      ? `\n\nDetailed market research from live sources — treat this as ground truth. Use the specific prices, specs, owner complaints, reliability data and running costs throughout your article. Do not contradict any of these facts:\n\n---\n${research}\n---\n\nIMPORTANT: The research above contains real owner sentiment and known issues gathered from owner forums and review sites. Weave this into your copy naturally — mention specific known faults, praise things owners consistently love, and be honest about weaknesses owners report. This is what makes the article genuinely useful rather than just a press release rewrite.`
+      ? `\n\nDetailed market research from live sources — treat this as ground truth. Use the specific prices, specs, owner complaints, reliability data and running costs throughout your article. Do not contradict any of these facts:\n\n---\n${research.text}\n---\n\nIMPORTANT: The research above contains real owner sentiment and known issues gathered from owner forums and review sites. Weave this into your copy naturally — mention specific known faults, praise things owners consistently love, and be honest about weaknesses owners report. This is what makes the article genuinely useful rather than just a press release rewrite.`
       : '';
 
     let schema, systemNote;
@@ -548,6 +557,10 @@ ${schema}`
     }
 
     send('step', { step:'fact', state:'done', status:'All claims verified ✓' });
+    // Attach research sources to article
+    if (research && research.sources && research.sources.length) {
+      article.sources = research.sources;
+    }
     send('article', { article, usedGemini:!!research, intent, tokens_remaining: tester.tokens_remaining - cost });
 
     // Deduct tokens
