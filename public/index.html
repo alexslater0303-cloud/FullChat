@@ -1933,7 +1933,7 @@ async function askFollowUp(){
     thread.scrollIntoView({behavior:'smooth',block:'end'});
     // Persist conversation thread
     if (currentHistoryId) {
-      fetch('/api/convo', {
+      fetch('/api/history', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: currentHistoryId, convo })
