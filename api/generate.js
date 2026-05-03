@@ -189,64 +189,62 @@ function comparisonSchema(depth) {
 
 
 // ── VS Schema ─────────────────────────────────────────────────────────────────
-function vsSchema(depth) {
+function vsSchema(depth, numCars) {
+  numCars = numCars || 2;
   const copy = depth === 0 ? '2-3 paragraphs' : depth === 1 ? '3-4 paragraphs' : '5-6 paragraphs with full technical depth';
-  return `{
-  "articleType": "vs",
-  "headline": "CAR ONE VS CAR TWO: PUNCHY UPPERCASE BATTLE HEADLINE",
-  "deck": "One sentence that captures the rivalry",
-  "intro": "2-3 sentences setting the scene for this specific battle",
-  "cars": [
-    {
+  const carTemplate = `    {
       "make": "Make", "model": "Model", "year": "e.g. 2021-present",
       "searchMake": "Base brand only",
       "searchModel": "Base model only — NO variant/trim/suffix",
       "yearFrom": 2021, "yearTo": 2026,
       "generation": "e.g. G80 / FL5 / Mk8 — be specific",
-      "bodyStyle": "e.g. saloon",
+      "bodyStyle": "e.g. hatchback",
       "isNew": false,
       "badge": "e.g. Driver's Choice",
-      "stat1_val": "£52,000", "stat1_label": "From (used)",
-      "stat2_val": "510hp",   "stat2_label": "Power",
-      "stat3_val": "3.9s",   "stat3_label": "0-62mph",
-      "stat4_val": "£74,000","stat4_label": "New price",
-      "stat5_val": "26mpg",  "stat5_label": "Economy",
-      "stat6_val": "2,993cc","stat6_label": "Engine",
+      "stat1_val": "£22,000", "stat1_label": "From (used)",
+      "stat2_val": "276hp",   "stat2_label": "Power",
+      "stat3_val": "5.7s",   "stat3_label": "0-62mph",
+      "stat4_val": "£34,995","stat4_label": "Launch price",
+      "stat5_val": "34mpg",  "stat5_label": "Economy",
+      "stat6_val": "1,997cc","stat6_label": "Engine",
       "copy": "${copy} — in-depth analysis of this car's character, strengths and weaknesses in the context of this battle",
       "pros": ["Pro 1", "Pro 2", "Pro 3"],
       "cons": ["Con 1", "Con 2"],
       "quote": "Real attributed quote from a known automotive journalist",
       "quoteAttribution": "Journalist Name, Publication"
-    }
+    }`;
+  const carsArr = Array(numCars).fill(carTemplate).join(',\n');
+  const bgWinnerNote = numCars === 2 ? '0 or 1' : numCars === 3 ? '0, 1, or 2' : '0, 1, 2, or 3';
+  const deprCars = Array(numCars).fill(0).map((_, i) => `      {
+        "currentValue": "£XX,XXX",
+        "value3yr": "£XX,XXX",
+        "pct3yr": ${30 + i * 5},
+        "annualLoss": "£X,XXX/yr",
+        "note": "One sentence on why it holds or loses value"
+      }`).join(',\n');
+  return `{
+  "articleType": "vs",
+  "headline": "PUNCHY UPPERCASE MULTI-CAR BATTLE HEADLINE",
+  "deck": "One sentence that captures the rivalry",
+  "intro": "2-3 sentences setting the scene for this specific battle",
+  "cars": [
+${carsArr}
   ],
   "battlegrounds": [
-    { "category": "Performance", "winner": 0, "analysis": "2-3 sentences — why this car wins this specific category" },
+    { "category": "Performance", "winner": 0, "analysis": "2-3 sentences — why car at this index wins" },
     { "category": "Daily Usability", "winner": 1, "analysis": "..." },
     { "category": "Driver Involvement", "winner": 0, "analysis": "..." },
     { "category": "Running Costs", "winner": 1, "analysis": "..." },
     { "category": "Value for Money", "winner": 0, "analysis": "..." }
   ],
   "winner": 0,
-  "verdict": "2-3 definitive paragraphs — the overall winner and why, acknowledging what the loser does better",
+  "verdict": "2-3 definitive paragraphs — the overall winner and why, acknowledging what the others do better. winner field is the index (${bgWinnerNote}) of the winning car.",
   "depreciation": {
     "cars": [
-      {
-        "currentValue": "£28,000",
-        "value3yr": "£18,500",
-        "pct3yr": 34,
-        "annualLoss": "£3,167/yr",
-        "note": "One sentence on why it holds or loses value — brand strength, EV range anxiety, supply/demand"
-      },
-      {
-        "currentValue": "£25,000",
-        "value3yr": "£14,000",
-        "pct3yr": 44,
-        "annualLoss": "£3,667/yr",
-        "note": "One sentence on why it holds or loses value"
-      }
+${deprCars}
     ],
     "winner": 0,
-    "summary": "One sentence comparing the two — which loses less and why it matters in real money terms"
+    "summary": "One sentence on which holds value best and why it matters in real money terms"
   },
   "relatedPrompts": [
     "A natural follow-on prompt",
@@ -424,15 +422,19 @@ module.exports = async (req, res) => {
       ? `\n\nDetailed market research from live sources — treat this as ground truth. Use the specific prices, specs, owner complaints, reliability data and running costs throughout your article. Do not contradict any of these facts:\n\n---\n${research.text}\n---\n\nIMPORTANT: The research above contains real owner sentiment and known issues gathered from owner forums and review sites. Weave this into your copy naturally — mention specific known faults, praise things owners consistently love, and be honest about weaknesses owners report. This is what makes the article genuinely useful rather than just a press release rewrite.`
       : '';
 
-    let schema, systemNote;
+    let schema, systemNote, vsNumCars = 2;
     if (intent === 'single') {
       schema = singleCarSchema(Number(depth));
       systemNote = `Write a long-form deep dive review about: "${prompt}". This is a single car feature — go deep, be thorough, include real ownership experience, not a comparison list.`;
     } else if (intent === 'vs') {
-      schema = vsSchema(Number(depth));
-      systemNote = `Write a Full Chat VS battle feature about: "${prompt}". This is an EXACT HEAD-TO-HEAD between exactly TWO cars. Include precisely 2 cars in the "cars" array. Write 5 battleground categories judging which car wins each one (winner: 0 means first car wins, winner: 1 means second car wins). Declare an overall winner (0 or 1). Both cars must be genuinely available in the UK used market. Go deep on each car — more depth than a regular comparison, less than a full single-car deep dive.
+      // Count how many cars are being compared (number of vs/versus = numCars - 1)
+      const vsMatches = prompt.match(/\bvs\.?\b|\bversus\b|\bv\/\b/gi) || [];
+      vsNumCars = Math.min(Math.max(vsMatches.length + 1, 2), 4);
+      schema = vsSchema(Number(depth), vsNumCars);
+      const winnerNote = vsNumCars === 2 ? '0 or 1' : vsNumCars === 3 ? '0, 1, or 2' : '0, 1, 2, or 3';
+      systemNote = `Write a Full Chat VS battle feature about: "${prompt}". Include EXACTLY ${vsNumCars} cars in the "cars" array — no more, no fewer. Write 5 battleground categories; the winner field is the index (${winnerNote}) of the winning car in that category. Declare an overall winner index. All cars must be genuinely available on the UK used market. Go deep on each car.
 
-CRITICAL — VARIANT MATCHING: You must compare equivalent variants at the same performance and price tier. Before selecting a variant for each car, determine the implied tier from context: if the prompt names a specific trim (e.g. "RS", "M", "AMG", "GTI", "Performance"), match that tier on both sides. If the prompt is vague (e.g. just "Tesla Model 3 vs Polestar 2"), infer the most sensible like-for-like comparison — typically the most popular mid-range or entry variant of each. NEVER compare a base/entry variant of one car against an AWD/performance variant of another. If Car A only comes in AWD at a certain price point, match Car B at the same price point even if that means picking an AWD or higher-spec variant too. State the specific variant you've chosen for each car in the generation field (e.g. "Tesla Model 3 RWD Standard Range" vs "Polestar 2 Standard Range Single Motor RWD"). The comparison is meaningless — and misleading to readers — if the variants are mismatched.`;
+CRITICAL — VARIANT MATCHING: You must compare equivalent variants at the same performance and price tier across ALL ${vsNumCars} cars. Before selecting a variant for each car, determine the implied tier from context: if the prompt names a specific trim (e.g. "RS", "M", "AMG", "GTI", "Performance"), match that tier on both sides. If the prompt is vague (e.g. just "Tesla Model 3 vs Polestar 2"), infer the most sensible like-for-like comparison — typically the most popular mid-range or entry variant of each. NEVER compare a base/entry variant of one car against an AWD/performance variant of another. If Car A only comes in AWD at a certain price point, match Car B at the same price point even if that means picking an AWD or higher-spec variant too. State the specific variant you've chosen for each car in the generation field (e.g. "Tesla Model 3 RWD Standard Range" vs "Polestar 2 Standard Range Single Motor RWD"). The comparison is meaningless — and misleading to readers — if the variants are mismatched.`;
     } else {
       const cs = comparisonSchema(Number(depth));
       // Allow prompt to override car count e.g. "top 10 budget hatchbacks"
@@ -447,7 +449,7 @@ CRITICAL — VARIANT MATCHING: You must compare equivalent variants at the same 
     const maxTokens = intent==='single'
       ? (depth===0?3500:depth===1?5500:8000)
       : intent==='vs'
-        ? (depth===0?8000:depth===1?14000:18000)
+        ? (depth===0?8000+(vsNumCars-2)*3000:depth===1?14000+(vsNumCars-2)*4000:18000+(vsNumCars-2)*5000)
         : (depth===0?5500:depth===1?8000:12000);
 
     let fullText = '';
@@ -523,9 +525,9 @@ ${schema}`
     } else if (article.cars) {
       article.cars = article.cars.map(addMarketplaceUrls);
     }
-    // VS: enforce exactly 2 cars
+    // VS: enforce max 4 cars
     if (article.articleType === 'vs' && article.cars) {
-      article.cars = article.cars.slice(0, 2);
+      article.cars = article.cars.slice(0, 4);
     }
 
     // ── Step 3: Independent Gemini fact-check ────────────────────────────────

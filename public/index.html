@@ -217,14 +217,17 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 .depr-summary{font-family:'Barlow',sans-serif;font-size:13.5px;color:#333;line-height:1.6;padding:14px 16px;background:#F9F7F3;border-radius:4px;border-left:3px solid #D8D3CB;margin-top:4px;}
 
 /* VS Mode */
-.vs-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;}
-@media(max-width:600px){.vs-grid{grid-template-columns:1fr;}}
+.vs-grid{display:grid;gap:16px;margin-bottom:24px;}
+.vs-grid-2{grid-template-columns:1fr 1fr;}
+.vs-grid-3{grid-template-columns:1fr 1fr 1fr;}
+.vs-grid-4{grid-template-columns:1fr 1fr;}
+@media(max-width:700px){.vs-grid-2,.vs-grid-3,.vs-grid-4{grid-template-columns:1fr;}}
 .vs-car-card{background:#fff;border-radius:6px;border:2px solid #D8D3CB;padding:16px;position:relative;overflow:hidden;transition:border-color 0.2s;}
 .vs-car-card.vs-car-winner{border-width:2.5px;}
 .vs-winner-ribbon{position:absolute;top:12px;right:-22px;padding:4px 32px;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:9px;letter-spacing:3px;text-transform:uppercase;color:#fff;transform:rotate(35deg);pointer-events:none;}
 .vs-car-num{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:28px;line-height:1;margin-bottom:4px;}
 .vs-battlegrounds{margin:8px 0 24px;}
-.vs-scorecard{display:flex;align-items:center;gap:12px;margin:16px 0 24px;}
+.vs-scorecard{display:flex;align-items:center;gap:8px;margin:16px 0 24px;flex-wrap:wrap;}
 .vs-score-half{flex:1;text-align:center;padding:14px 10px;border-radius:4px;border:1.5px solid #D8D3CB;transition:all 0.2s;}
 .vs-score-half.vs-score-win{border-width:2px;}
 .vs-score-make{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:13px;letter-spacing:1px;text-transform:uppercase;color:#1A1A1A;margin-bottom:4px;}
@@ -1504,7 +1507,7 @@ function renderArticle(a, intent) {
   const main=document.getElementById('article-main');
   if(intent==='single'&&a.car){
     main.innerHTML=renderSingleCar(a,c);
-  } else if(intent==='vs'&&a.cars&&a.cars.length===2){
+  } else if(intent==='vs'&&a.cars&&a.cars.length>=2){
     main.innerHTML=renderVS(a,c);
   } else {
     main.innerHTML=renderComparison(a,c);
@@ -1601,18 +1604,17 @@ function renderSingleCar(a,c){
 
 
 function renderVS(a, c) {
-  const [car1, car2] = a.cars;
-  const badge1 = BADGE[car1.badge] || BADGE['Solid Value'];
-  const badge2 = BADGE[car2.badge] || BADGE['Solid Value'];
+  const cars = a.cars || [];
+  const n = cars.length;
   const battlegrounds = a.battlegrounds || [];
   const winner = typeof a.winner === 'number' ? a.winner : -1;
 
-  // Tally battleground wins
-  const wins = [0, 0];
-  battlegrounds.forEach(b => { if (b.winner === 0) wins[0]++; else if (b.winner === 1) wins[1]++; });
+  // Tally battleground wins per car
+  const wins = Array(n).fill(0);
+  battlegrounds.forEach(b => { if (typeof b.winner === 'number' && b.winner < n) wins[b.winner]++; });
 
   function carCard(car, idx) {
-    const badge = idx === 0 ? badge1 : badge2;
+    const badge = BADGE[car.badge] || BADGE['Solid Value'];
     const urls = car.marketplaceUrls || {};
     const parasText = (car.copy || car.fullReview || '');
     const paras = parasText.split('\n').filter(Boolean).map(p => '<p>' + p + '</p>').join('');
@@ -1627,7 +1629,7 @@ function renderVS(a, c) {
       + '<div class="gallery-wrap"><div class="gallery-box" id="gbox-' + idx + '"><div class="gallery-loading" id="gload-' + idx + '">Loading photos...</div></div><div class="gallery-credit" id="gcredit-' + idx + '">Photos via Pexels</div></div>'
       + (ytVideos[idx] ? renderYouTube(idx) : '')
       + '<div class="car-stats-9">'
-      + [1,2,3,4,5,6,7,8,9].map(n => car['stat' + n + '_val'] ? '<div class="stat-item"><span class="stat-val">' + esc(car['stat' + n + '_val']) + '</span><span class="stat-lbl">' + esc(car['stat' + n + '_label'] || '') + '</span></div>' : '').join('')
+      + [1,2,3,4,5,6,7,8,9].map(n2 => car['stat' + n2 + '_val'] ? '<div class="stat-item"><span class="stat-val">' + esc(car['stat' + n2 + '_val']) + '</span><span class="stat-lbl">' + esc(car['stat' + n2 + '_label'] || '') + '</span></div>' : '').join('')
       + '</div>'
       + '<div class="car-div"></div>'
       + '<div class="full-review">' + paras + '</div>'
@@ -1638,38 +1640,42 @@ function renderVS(a, c) {
   }
 
   function battlegroundRows() {
-    return battlegrounds.map((b, i) => {
+    return battlegrounds.map(b => {
       const w = b.winner;
+      const pills = cars.map((car, idx) => {
+        const active = w === idx;
+        return '<span class="vs-bg-pill' + (active ? ' vs-bg-active" style="background:' + c + ';color:#fff;border-color:' + c + '"' : '"') + '>' + esc(car.make) + '</span>';
+      }).join('<span class="vs-bg-vs">v</span>');
       return '<div class="vs-bg-row">'
         + '<div class="vs-bg-cat">' + esc(b.category) + '</div>'
         + '<div class="vs-bg-analysis">' + esc(b.analysis) + '</div>'
-        + '<div class="vs-bg-winner">'
-        + '<span class="vs-bg-pill vs-bg-car1' + (w === 0 ? ' vs-bg-active" style="background:' + c + ';color:#fff;border-color:' + c + '"' : '"') + '>' + esc(car1.make) + '</span>'
-        + '<span class="vs-bg-vs">v</span>'
-        + '<span class="vs-bg-pill vs-bg-car2' + (w === 1 ? ' vs-bg-active" style="background:' + c + ';color:#fff;border-color:' + c + '"' : '"') + '>' + esc(car2.make) + '</span>'
-        + '</div>'
+        + '<div class="vs-bg-winner">' + pills + '</div>'
         + '</div>';
     }).join('');
   }
 
-  const scoreDraw = wins[0] === wins[1];
+  // Grid class based on car count
+  const gridClass = n === 2 ? 'vs-grid vs-grid-2' : n === 3 ? 'vs-grid vs-grid-3' : 'vs-grid vs-grid-4';
 
-  return '<div class="vs-grid">' + carCard(car1, 0) + carCard(car2, 1) + '</div>'
+  const scoreCards = cars.map((car, idx) => {
+    const isWin = winner === idx;
+    return '<div class="vs-score-half' + (isWin ? ' vs-score-win" style="background:' + c + '20;border-color:' + c + '"' : '"') + '>'
+      + '<div class="vs-score-make">' + esc(car.make) + '</div>'
+      + '<div class="vs-score-num" style="color:' + (isWin ? c : '#AAA') + '">' + wins[idx] + '</div>'
+      + '<div class="vs-score-lbl">wins</div>'
+      + '</div>';
+  });
+  // Interleave dividers
+  const scoreRow = scoreCards.reduce((acc, card, i) => {
+    acc.push(card);
+    if (i < scoreCards.length - 1) acc.push('<div class="vs-score-div">–</div>');
+    return acc;
+  }, []).join('');
+
+  return '<div class="' + gridClass + '">' + cars.map((car, idx) => carCard(car, idx)).join('') + '</div>'
     + '<div class="vs-battlegrounds">'
     + '<div class="srule"><div class="srule-line"></div><div class="srule-text">Battlegrounds</div><div class="srule-line"></div></div>'
-    + '<div class="vs-scorecard">'
-    + '<div class="vs-score-half' + (winner === 0 ? ' vs-score-win" style="background:' + c + '20;border-color:' + c + '"' : '"') + '>'
-    + '<div class="vs-score-make">' + esc(car1.make) + '</div>'
-    + '<div class="vs-score-num" style="color:' + (winner === 0 ? c : '#AAA') + '">' + wins[0] + '</div>'
-    + '<div class="vs-score-lbl">wins</div>'
-    + '</div>'
-    + '<div class="vs-score-div">–</div>'
-    + '<div class="vs-score-half' + (winner === 1 ? ' vs-score-win" style="background:' + c + '20;border-color:' + c + '"' : '"') + '>'
-    + '<div class="vs-score-make">' + esc(car2.make) + '</div>'
-    + '<div class="vs-score-num" style="color:' + (winner === 1 ? c : '#AAA') + '">' + wins[1] + '</div>'
-    + '<div class="vs-score-lbl">wins</div>'
-    + '</div>'
-    + '</div>'
+    + '<div class="vs-scorecard">' + scoreRow + '</div>'
     + battlegroundRows()
     + '</div>'
     + '<div class="verdict"><div class="verdict-lbl" style="color:' + c + '">The Verdict</div><div class="verdict-txt">' + esc(a.verdict || '') + '</div></div>'
@@ -1826,14 +1832,12 @@ function renderInterestingMentions(a, c) {
 function renderDepreciation(a, c) {
   const d = a.depreciation;
   if (!d || !d.cars || d.cars.length < 2) return '';
-  const [car1, car2] = a.cars || [];
-  const [dep1, dep2] = d.cars;
+  const articleCars = a.cars || [];
   const winner = typeof d.winner === 'number' ? d.winner : -1;
 
   function bar(dep, car, idx) {
     const pct = Math.min(Math.max(Number(dep.pct3yr) || 0, 0), 100);
     const isWinner = winner === idx;
-    // Bar fills left to right showing how much value is LOST — shorter bar = better (less depreciation)
     const retainedPct = 100 - pct;
     return '<div class="depr-car">'
       + '<div class="depr-car-hdr">'
@@ -1861,11 +1865,12 @@ function renderDepreciation(a, c) {
       + '</div>';
   }
 
+  const bars = d.cars.map((dep, idx) => bar(dep, articleCars[idx], idx)).join('');
+
   return '<div class="depr-section">'
     + '<div class="srule"><div class="srule-line"></div><div class="srule-text">Depreciation</div><div class="srule-line"></div></div>'
     + '<div class="depr-disclaimer">Projected values are estimates based on current market trends. Actual depreciation will vary.</div>'
-    + bar(dep1, car1, 0)
-    + bar(dep2, car2, 1)
+    + bars
     + (d.summary ? '<div class="depr-summary">' + esc(d.summary) + '</div>' : '')
     + '</div>';
 }
