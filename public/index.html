@@ -74,6 +74,7 @@ body{font-family:'Barlow',sans-serif;background:#F5F0E8;color:#1A1A1A;min-height
 .phdr{display:flex;align-items:center;justify-content:space-between;padding:20px 24px 16px;border-bottom:2px solid #1A1A1A;}
 .plogo{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:28px;letter-spacing:-1px;color:#1A1A1A;}
 .pbadge{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;letter-spacing:3px;text-transform:uppercase;padding:7px 12px;border-radius:2px;cursor:pointer;color:#F5F0E8;transition:opacity 0.2s;white-space:nowrap;}
+.back-btn{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;letter-spacing:3px;text-transform:uppercase;padding:7px 12px;border-radius:2px;cursor:pointer;border:1.5px solid currentColor;background:transparent;transition:opacity 0.15s;white-space:nowrap;display:none;}
 .pbadge:hover{opacity:0.8;}
 .plogo-wrap{display:flex;flex-direction:column;gap:2px;}
 .p-persona-lbl{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;letter-spacing:4px;text-transform:uppercase;}
@@ -677,6 +678,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
   <nav class="anav">
     <div class="anav-logo">FULL<span id="a-span">CHAT</span></div>
     <div class="anav-right">
+      <button class="back-btn" id="back-btn" onclick="goBack()">← BACK</button>
       <div class="share-wrap" id="share-wrap">
         <button class="share-btn" id="share-btn" onclick="toggleSharePanel()">⬆ SHARE</button>
         <div class="share-panel" id="share-panel">
@@ -866,6 +868,7 @@ const PSVG = {
 let persona='provocateur', depth=1, inviteCode='', testerName='';
 let finalArticle=null, articleIntent='comparison', convo=[], fuBusy=false;
 let currentHistoryId=null; // set after each generation for share reuse
+let previousArticle=null, previousIntent=null, previousHistoryId=null; // for back navigation
 let isSharedView=false;
 let galleries={}, ytVideos={}, ytExpanded={};
 let currentStep=0;
@@ -1185,6 +1188,7 @@ function applyColor(c) {
   ['a-vlbl','fu-title'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.color=c;});
   const bgh=document.getElementById('a-bghdr');if(bgh)bgh.style.background=c;
   const nb=document.getElementById('a-nbtn');if(nb){nb.style.color=c;nb.style.border=`1.5px solid ${c}`;}
+  const bb=document.getElementById('back-btn');if(bb){bb.style.color=c;bb.style.borderColor=c;}
   const sb=document.getElementById('share-btn');if(sb){sb.style.color=c;sb.style.border=`1.5px solid ${c}`;}
   const av=document.getElementById('a-verified');if(av)av.style.background=c;
   const dv=document.getElementById('d-val');if(dv)dv.style.color=c;
@@ -1323,6 +1327,8 @@ function emailErrorReport(e) {
 
 async function startPipeline(customPrompt) {
   const catEl0=document.getElementById('a-cat'); if(catEl0) delete catEl0.dataset.cache;
+  // Clear back navigation unless triggered from generateAlternative (which sets it first)
+  if (!previousArticle) { const bb=document.getElementById('back-btn'); if(bb) bb.style.display='none'; }
   const promptVal = customPrompt || document.getElementById('p-input').value.trim();
   if (!promptVal) { document.getElementById('p-input').focus(); return; }
   finalArticle=null; articleIntent='comparison'; convo=[]; galleries={}; ytVideos={}; ytExpanded={}; currentHistoryId=null;
@@ -1973,8 +1979,38 @@ function galUpdate(i){
 
 // ── ALTERNATIVE — generate deep dive ─────────────────────────────────────────
 function generateAlternative(make, model) {
+  // Save current article so user can go back
+  if (finalArticle) {
+    previousArticle = finalArticle;
+    previousIntent = articleIntent;
+    previousHistoryId = currentHistoryId;
+    // Show back button with parent headline
+    const backBtn = document.getElementById('back-btn');
+    if (backBtn) {
+      backBtn.textContent = '← ' + (finalArticle.headline || 'BACK').slice(0, 28).toUpperCase();
+      backBtn.style.display = 'inline-block';
+    }
+  }
   document.getElementById('p-input').value=`Deep dive on the ${make} ${model}`;
   startPipeline(`Deep dive on the ${make} ${model}`);
+}
+
+function goBack() {
+  if (!previousArticle) return;
+  finalArticle = previousArticle;
+  articleIntent = previousIntent;
+  currentHistoryId = previousHistoryId;
+  previousArticle = null; previousIntent = null; previousHistoryId = null;
+  // Re-apply persona colour and render
+  const p = PERSONAS[persona] || PERSONAS.provocateur;
+  applyColor(p.color);
+  renderArticle(finalArticle, articleIntent);
+  const cars = articleIntent === 'single' ? [finalArticle.car] : (finalArticle.cars || []);
+  fetchMedia(cars).then(() => renderArticle(finalArticle, articleIntent));
+  // Hide back button
+  const backBtn = document.getElementById('back-btn');
+  if (backBtn) backBtn.style.display = 'none';
+  go('s-article');
 }
 
 // ── SHARE ─────────────────────────────────────────────────────────────────────
