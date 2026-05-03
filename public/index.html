@@ -193,6 +193,29 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 .share-banner-cta:hover{text-decoration:underline;}
 
 
+/* Depreciation */
+.depr-section{margin:8px 0 24px;}
+.depr-disclaimer{font-family:'Barlow',sans-serif;font-size:11px;color:#AAA;margin-bottom:16px;font-style:italic;}
+.depr-car{margin-bottom:20px;padding:16px;background:#fff;border-radius:4px;border:1.5px solid #D8D3CB;}
+.depr-car-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.depr-car-name{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:15px;letter-spacing:1px;text-transform:uppercase;}
+.depr-winner-tag{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#fff;padding:3px 8px;border-radius:2px;}
+.depr-bar-wrap{margin-bottom:10px;}
+.depr-bar-track{height:10px;border-radius:3px;background:#F0EDE8;overflow:hidden;display:flex;margin-bottom:6px;}
+.depr-bar-retained{height:100%;transition:width 0.6s ease;}
+.depr-bar-lost{height:100%;background:#EADDD0;}
+.depr-bar-labels{display:flex;justify-content:space-between;align-items:center;}
+.depr-val-label{font-family:'Barlow',sans-serif;font-size:11.5px;color:#888;}
+.depr-pct-label{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:14px;}
+.depr-stats{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap;}
+.depr-stat{display:flex;flex-direction:column;align-items:center;}
+.depr-stat-val{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:16px;line-height:1.1;}
+.depr-stat-lbl{font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#AAA;}
+.depr-stat-arrow{font-size:14px;color:#CCC;flex-shrink:0;}
+.depr-stat-div{width:1px;height:28px;background:#E0DBD3;flex-shrink:0;}
+.depr-note{font-family:'Barlow',sans-serif;font-size:12.5px;color:#777;line-height:1.5;border-left:2px solid #E0DBD3;padding-left:10px;}
+.depr-summary{font-family:'Barlow',sans-serif;font-size:13.5px;color:#333;line-height:1.6;padding:14px 16px;background:#F9F7F3;border-radius:4px;border-left:3px solid #D8D3CB;margin-top:4px;}
+
 /* VS Mode */
 .vs-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;}
 @media(max-width:600px){.vs-grid{grid-template-columns:1fr;}}
@@ -1650,6 +1673,7 @@ function renderVS(a, c) {
     + battlegroundRows()
     + '</div>'
     + '<div class="verdict"><div class="verdict-lbl" style="color:' + c + '">The Verdict</div><div class="verdict-txt">' + esc(a.verdict || '') + '</div></div>'
+    + renderDepreciation(a, c)
     + renderRelatedPrompts(a, c)
     + renderSources(a, c);
 }
@@ -1796,6 +1820,54 @@ function renderInterestingMentions(a, c) {
       <div class="imention-intro">These cars didn't make the main list — they're not readily available in the UK — but they're too interesting to ignore.</div>
       <div class="imention-grid">${cards}</div>
     </div>`;
+}
+
+
+function renderDepreciation(a, c) {
+  const d = a.depreciation;
+  if (!d || !d.cars || d.cars.length < 2) return '';
+  const [car1, car2] = a.cars || [];
+  const [dep1, dep2] = d.cars;
+  const winner = typeof d.winner === 'number' ? d.winner : -1;
+
+  function bar(dep, car, idx) {
+    const pct = Math.min(Math.max(Number(dep.pct3yr) || 0, 0), 100);
+    const isWinner = winner === idx;
+    // Bar fills left to right showing how much value is LOST — shorter bar = better (less depreciation)
+    const retainedPct = 100 - pct;
+    return '<div class="depr-car">'
+      + '<div class="depr-car-hdr">'
+      + '<span class="depr-car-name">' + esc((car && car.make) || ('Car ' + (idx+1))) + '</span>'
+      + (isWinner ? '<span class="depr-winner-tag" style="background:' + c + '">Best keeper</span>' : '')
+      + '</div>'
+      + '<div class="depr-bar-wrap">'
+      + '<div class="depr-bar-track">'
+      + '<div class="depr-bar-retained" style="width:' + retainedPct + '%;background:' + (isWinner ? c : '#D8D3CB') + '"></div>'
+      + '<div class="depr-bar-lost" style="width:' + pct + '%"></div>'
+      + '</div>'
+      + '<div class="depr-bar-labels">'
+      + '<span class="depr-val-label">Worth ' + esc(dep.value3yr || '?') + ' after 3 yrs</span>'
+      + '<span class="depr-pct-label" style="color:' + (isWinner ? c : '#C8102E') + '">−' + pct + '%</span>'
+      + '</div>'
+      + '</div>'
+      + '<div class="depr-stats">'
+      + '<span class="depr-stat"><span class="depr-stat-val">' + esc(dep.currentValue || '?') + '</span><span class="depr-stat-lbl">Today</span></span>'
+      + '<span class="depr-stat-arrow">→</span>'
+      + '<span class="depr-stat"><span class="depr-stat-val">' + esc(dep.value3yr || '?') + '</span><span class="depr-stat-lbl">3 years</span></span>'
+      + '<span class="depr-stat-div"></span>'
+      + '<span class="depr-stat"><span class="depr-stat-val" style="color:#C8102E">' + esc(dep.annualLoss || '?') + '</span><span class="depr-stat-lbl">Lost/yr</span></span>'
+      + '</div>'
+      + (dep.note ? '<div class="depr-note">' + esc(dep.note) + '</div>' : '')
+      + '</div>';
+  }
+
+  return '<div class="depr-section">'
+    + '<div class="srule"><div class="srule-line"></div><div class="srule-text">Depreciation</div><div class="srule-line"></div></div>'
+    + '<div class="depr-disclaimer">Projected values are estimates based on current market trends. Actual depreciation will vary.</div>'
+    + bar(dep1, car1, 0)
+    + bar(dep2, car2, 1)
+    + (d.summary ? '<div class="depr-summary">' + esc(d.summary) + '</div>' : '')
+    + '</div>';
 }
 
 function renderRelatedPrompts(a, c) {

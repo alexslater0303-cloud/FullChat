@@ -228,6 +228,26 @@ function vsSchema(depth) {
   ],
   "winner": 0,
   "verdict": "2-3 definitive paragraphs — the overall winner and why, acknowledging what the loser does better",
+  "depreciation": {
+    "cars": [
+      {
+        "currentValue": "£28,000",
+        "value3yr": "£18,500",
+        "pct3yr": 34,
+        "annualLoss": "£3,167/yr",
+        "note": "One sentence on why it holds or loses value — brand strength, EV range anxiety, supply/demand"
+      },
+      {
+        "currentValue": "£25,000",
+        "value3yr": "£14,000",
+        "pct3yr": 44,
+        "annualLoss": "£3,667/yr",
+        "note": "One sentence on why it holds or loses value"
+      }
+    ],
+    "winner": 0,
+    "summary": "One sentence comparing the two — which loses less and why it matters in real money terms"
+  },
   "relatedPrompts": [
     "A natural follow-on prompt",
     "Second related prompt",
