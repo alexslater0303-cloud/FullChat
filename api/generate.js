@@ -359,8 +359,8 @@ module.exports = async (req, res) => {
     }
 
     const maxTokens = intent==='single'
-      ? (depth===0?2200:depth===1?3500:5000)
-      : (depth===0?1800:depth===1?2800:3800);
+      ? (depth===0?3500:depth===1?5500:8000)
+      : (depth===0?5500:depth===1?8000:12000);
 
     let fullText = '';
 
