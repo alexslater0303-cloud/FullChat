@@ -178,6 +178,24 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 .share-banner-cta{color:var(--ac,#C8102E);font-weight:900;letter-spacing:2px;text-decoration:none;text-transform:uppercase;}
 .share-banner-cta:hover{text-decoration:underline;}
 
+/* Error screen */
+#s-error{background:#F5F0E8;}
+.err-wrap{padding:32px 24px;max-width:680px;margin:0 auto;}
+.err-badge{display:inline-block;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:10px;letter-spacing:4px;text-transform:uppercase;background:#C8102E;color:#fff;padding:5px 12px;border-radius:2px;margin-bottom:16px;}
+.err-title{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:38px;line-height:1;color:#1A1A1A;margin-bottom:8px;}
+.err-sub{font-size:14px;color:#666;line-height:1.5;margin-bottom:28px;}
+.err-meta{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:12px;margin-bottom:20px;padding:16px;background:#fff;border-radius:4px;border:1px solid #D8D3CB;}
+.err-meta-lbl{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#AAA;align-self:start;padding-top:1px;}
+.err-meta-val{color:#2A2A2A;word-break:break-all;line-height:1.4;}
+.err-raw{margin-bottom:20px;}
+.err-raw-lbl{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#AAA;margin-bottom:6px;}
+.err-raw-box{background:#1A1A1A;color:#A0C878;font-family:monospace;font-size:11px;padding:14px;border-radius:4px;overflow-x:auto;white-space:pre-wrap;word-break:break-all;max-height:180px;overflow-y:auto;line-height:1.5;}
+.err-actions{display:flex;flex-direction:column;gap:10px;}
+.err-btn{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:11px;letter-spacing:3px;text-transform:uppercase;padding:13px 20px;border-radius:3px;cursor:pointer;border:none;transition:opacity 0.15s;text-align:center;text-decoration:none;display:block;}
+.err-btn-primary{background:#1A1A1A;color:#F5F0E8;}
+.err-btn-copy{background:transparent;border:1.5px solid #1A1A1A;color:#1A1A1A;}
+.err-btn-share{background:#C8102E;color:#fff;}
+.err-btn:hover{opacity:0.8;}
 /* Hero with CSS art backgrounds */
 .hero{position:relative;min-height:340px;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;}
 .hero-art{position:absolute;inset:0;background-size:cover;background-position:center top;transition:opacity 0.6s ease;image-rendering:auto;}
@@ -515,6 +533,24 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 </div>
 
 <!-- ARTICLE -->
+<div id="s-error" class="screen">
+  <div class="err-wrap">
+    <div class="err-badge">Generation Error</div>
+    <div class="err-title">Something went wrong.</div>
+    <div class="err-sub">The AI returned a response that couldn't be parsed into an article. The details below will help diagnose the issue — please share them with the developer.</div>
+    <div class="err-meta" id="err-meta"></div>
+    <div class="err-raw">
+      <div class="err-raw-lbl">Raw API Response (first 3000 chars)</div>
+      <div class="err-raw-box" id="err-raw">—</div>
+    </div>
+    <div class="err-actions">
+      <button class="err-btn err-btn-copy" id="err-copy-btn" onclick="copyErrorReport()">⎘ Copy Full Error Report</button>
+      <a class="err-btn err-btn-share" id="err-share-btn" href="#" onclick="emailErrorReport(event)">✉ Share with Developer</a>
+      <button class="err-btn err-btn-primary" onclick="go('s-prompt')">← Try Again</button>
+    </div>
+  </div>
+</div>
+
 <div id="s-article" class="screen">
   <div class="share-banner" id="share-banner" style="display:none">
     <span>📖 You're viewing a shared FullChat article</span>
@@ -1106,6 +1142,44 @@ function resetBgDrip() {
   if (el) el.textContent = '';
 }
 
+let _lastError = null;
+
+function showErrorScreen(errData) {
+  _lastError = errData;
+  const meta = document.getElementById('err-meta');
+  const rows = [
+    ['Time',       errData.timestamp ? new Date(errData.timestamp).toLocaleString() : new Date().toLocaleString()],
+    ['Prompt',     errData.prompt || document.getElementById('p-input')?.value || '—'],
+    ['Persona',    errData.persona || persona || '—'],
+    ['Depth',      errData.depth != null ? errData.depth : depth],
+    ['Error',      errData.message || 'Parse failed'],
+    ['Raw length', errData.rawLength ? errData.rawLength + ' chars' : '—'],
+  ];
+  meta.innerHTML = rows.map(([l,v]) =>
+    `<div class="err-meta-lbl">${l}</div><div class="err-meta-val">${esc(String(v))}</div>`
+  ).join('');
+  document.getElementById('err-raw').textContent = errData.rawSnippet || '(no raw response captured)';
+  resetSurpriseBtn();
+  go('s-error');
+}
+
+function copyErrorReport() {
+  const report = JSON.stringify(_lastError, null, 2);
+  navigator.clipboard.writeText(report).then(() => {
+    const btn = document.getElementById('err-copy-btn');
+    btn.textContent = '✓ Copied!';
+    setTimeout(() => { btn.textContent = '⎘ Copy Full Error Report'; }, 2500);
+  });
+}
+
+function emailErrorReport(e) {
+  e.preventDefault();
+  const report = JSON.stringify(_lastError, null, 2);
+  const subject = encodeURIComponent('FullChat Error Report — ' + ((_lastError && _lastError.prompt) || 'unknown prompt'));
+  const body = encodeURIComponent('Error details below:\n\n' + report);
+  window.location.href = 'mailto:alex.slater0303@gmail.com?subject=' + subject + '&body=' + body;
+}
+
 async function startPipeline(customPrompt) {
   const promptVal = customPrompt || document.getElementById('p-input').value.trim();
   if (!promptVal) { document.getElementById('p-input').focus(); return; }
@@ -1131,8 +1205,7 @@ async function startPipeline(customPrompt) {
 
     if(!res.ok){
       const e=await res.json().catch(()=>({}));
-      document.getElementById('g-mode').textContent=e.error||`Error ${res.status}`;
-      await delay(3000); resetSurpriseBtn(); go('s-prompt'); return;
+      showErrorScreen({ message: e.error || `HTTP ${res.status}`, prompt: promptVal, persona, depth, timestamp: new Date().toISOString() }); return;
     }
 
     const reader=res.body.getReader(), decoder=new TextDecoder();
@@ -1168,8 +1241,7 @@ async function startPipeline(customPrompt) {
 
             if(currentEvent==='error'||data.error){
               stopTicker();
-              document.getElementById('g-mode').textContent=data.message||data.error||'Error';
-              await delay(3000); resetSurpriseBtn(); go('s-prompt'); return;
+              showErrorScreen(data); return;
             }
 
             if(currentEvent==='done'){
@@ -1189,8 +1261,7 @@ async function startPipeline(customPrompt) {
     if(streamDone) await fetchMediaAndReveal(promptVal);
   }catch(err){
     console.error('Stream error:',err);
-    document.getElementById('g-mode').textContent=err.message||'Connection failed';
-    await delay(3000); resetSurpriseBtn(); go('s-prompt');
+    showErrorScreen({ message: err.message || 'Connection failed', prompt: promptVal, persona, depth, timestamp: new Date().toISOString() });
   }
 }
 

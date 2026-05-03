@@ -412,7 +412,15 @@ ${schema}`
 
     let article = parseJSON(fullText);
     if (!article) {
-      send('error', { message: 'Could not parse article — please try again' });
+      send('error', {
+        message: 'Could not parse article',
+        prompt,
+        persona,
+        depth,
+        rawSnippet: fullText.slice(0, 3000),
+        rawLength: fullText.length,
+        timestamp: new Date().toISOString(),
+      });
       res.end(); return;
     }
 
