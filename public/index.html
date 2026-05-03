@@ -1191,6 +1191,21 @@ let _lastError = null;
 
 function showErrorScreen(errData) {
   _lastError = errData;
+  // Auto-log to feedback table so admin can see it
+  fetch('/api/feedback', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      inviteCode: inviteCode || 'UNKNOWN',
+      persona: errData.persona || persona,
+      prompt: errData.prompt || '',
+      depth: errData.depth != null ? errData.depth : depth,
+      headline: null,
+      articleType: null,
+      rating: 'error',
+      comment: (errData.message || 'Parse error') + ' | raw: ' + (errData.rawSnippet || '').slice(0, 300),
+    })
+  }).catch(() => {});
   const meta = document.getElementById('err-meta');
   const rows = [
     ['Time',       errData.timestamp ? new Date(errData.timestamp).toLocaleString() : new Date().toLocaleString()],
@@ -2015,11 +2030,30 @@ function renderAdminDashboard(d) {
         </div>`).join('')}
     </div>`;
 
-  // Feedback
-  const feedbackHtml = `
+
+
+  // Error log (feedback with rating='error')
+  const errors = d.feedback.filter(f => f.rating === 'error');
+  const cleanFeedback = d.feedback.filter(f => f.rating !== 'error');
+
+  const errLogHtml = errors.length ? `
+    <div class="adm-section">
+      <div class="adm-section-title" style="color:#C8102E">⚠ Error Log (${errors.length})</div>
+      ${errors.map(f => `
+        <div class="adm-fb-row" style="border-color:#F5C6C6">
+          <div class="adm-fb-top">
+            <span class="adm-fb-rating">⚠️</span>
+            <span class="adm-fb-meta">${esc(f.invite_code||'?')} · ${new Date(f.created_at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</span>
+          </div>
+          <div class="adm-fb-headline" style="color:#C8102E">${esc(f.prompt||'No prompt')}</div>
+          <div class="adm-fb-comment">${esc(f.comment||'')}</div>
+        </div>`).join('')}
+    </div>` : '';
+
+  const feedbackFiltered = cleanFeedback.length ? `
     <div class="adm-section">
       <div class="adm-section-title">Recent Feedback</div>
-      ${d.feedback.length ? d.feedback.map(f => `
+      ${cleanFeedback.map(f => `
         <div class="adm-fb-row">
           <div class="adm-fb-top">
             <span class="adm-fb-rating">${f.rating==='up'?'👍':'👎'}</span>
@@ -2029,10 +2063,10 @@ function renderAdminDashboard(d) {
           ${f.headline?`<div class="adm-fb-headline">${esc(f.headline)}</div>`:''}
           ${f.comment?`<div class="adm-fb-comment">"${esc(f.comment)}"</div>`:''}
           <div class="adm-fb-prompt">${esc(f.prompt||'')}</div>
-        </div>`).join('') : '<div class="adm-loading" style="padding:20px 0">No feedback yet</div>'}
-    </div>`;
+        </div>`).join('')}
+    </div>` : '<div class="adm-section"><div class="adm-section-title">Recent Feedback</div><div class="adm-loading" style="padding:20px 0">No feedback yet</div></div>';
 
-  document.getElementById('adm-body').innerHTML = statsHtml + personaHtml + testersHtml + feedbackHtml;
+  document.getElementById('adm-body').innerHTML = errLogHtml + statsHtml + personaHtml + testersHtml + feedbackFiltered;
 }
 </script>
 <script src="/pdf.js"></script>

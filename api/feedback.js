@@ -7,7 +7,7 @@ module.exports = async (req, res) => {
   const { inviteCode, persona, prompt, depth, headline, articleType, rating, comment } = req.body || {};
 
   if (!inviteCode || !rating) return res.status(400).json({ error: 'inviteCode and rating required' });
-  if (!['up', 'down'].includes(rating)) return res.status(400).json({ error: 'rating must be up or down' });
+  if (!['up', 'down', 'error'].includes(rating)) return res.status(400).json({ error: 'rating must be up, down, or error' });
 
   try {
     const { error } = await supabase.from('feedback').insert({
