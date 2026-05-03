@@ -111,6 +111,11 @@ function singleCarSchema(depth) {
       "title": "Check point title",
       "detail": "Detailed practical advice — what to physically check, listen for, smell for, or ask about when viewing and test driving. Be specific: mention particular components, known failure points, sounds to listen for (e.g. clunking from rear diff on lock, rattling timing chain on cold start), things to look for under the bonnet, gearbox feel, clutch bite point, brake pedal feel, signs of previous accident damage, service history red flags."
     }
+  ],
+  "relatedPrompts": [
+    "A natural follow-on question or related car prompt — e.g. comparison with a rival, a different generation, or a related model the reader might want next",
+    "Second related prompt",
+    "Third related prompt"
   ]
 }`;
 }
@@ -170,6 +175,11 @@ function comparisonSchema(depth) {
   "verdict": "${verdict}",
   "buyingGuide": [
     { "title": "Watch point", "detail": "One sentence of practical buying advice." }
+  ],
+  "relatedPrompts": [
+    "A natural follow-on prompt — e.g. deep dive on the winner, a broader comparison, or a related segment",
+    "Second related prompt",
+    "Third related prompt"
   ]
 }`
   };
