@@ -947,7 +947,7 @@ const MAX_SHORTLIST = 4;
 let _shortlist = JSON.parse(localStorage.getItem('fc_shortlist') || '[]');
 let _slPrevScreen = 's-article';
 let _promptBackScreen = 's-splash';
-function promptBack() { go(_promptBackScreen || 's-splash'); }
+function promptBack() { if (_promptBackScreen === 's-history') { openHistory(); } else { go(_promptBackScreen || 's-splash'); } }
 function updatePromptBack() {
   var badge = document.getElementById('p-badge');
   if (!badge) return;
