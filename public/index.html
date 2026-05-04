@@ -335,6 +335,17 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 .gdots{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);display:flex;gap:5px;z-index:2;}
 .gdot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,0.4);cursor:pointer;transition:background 0.2s;}
 .gallery-credit{font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#AAA;text-align:right;margin-top:2px;}
+.gallery-img{cursor:zoom-in;}
+.lightbox{display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.93);align-items:center;justify-content:center;flex-direction:column;}
+.lightbox.lb-open{display:flex;}
+.lb-img{max-width:92vw;max-height:82vh;object-fit:contain;border-radius:3px;user-select:none;}
+.lb-close{position:absolute;top:18px;right:22px;background:none;border:none;color:#fff;font-size:28px;cursor:pointer;line-height:1;opacity:0.8;}
+.lb-close:hover{opacity:1;}
+.lb-nav{position:absolute;top:50%;transform:translateY(-50%);background:rgba(255,255,255,0.12);border:none;color:#fff;font-size:32px;padding:10px 16px;cursor:pointer;border-radius:3px;line-height:1;transition:background 0.15s;}
+.lb-nav:hover{background:rgba(255,255,255,0.25);}
+.lb-prev{left:12px;}
+.lb-next{right:12px;}
+.lb-counter{position:absolute;bottom:18px;font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,0.5);}
 .car-gen{display:inline-block;margin-top:5px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;letter-spacing:2px;text-transform:uppercase;background:rgba(255,255,255,0.12);color:#ddd;padding:3px 8px;border-radius:2px;}
 
 .car-body{padding:4px 18px 18px;}
@@ -2235,7 +2246,7 @@ function renderGallery(i){
   if(!g||!g.photos||!g.photos.length){if(load)load.style.display='none';box.style.display='none';return;}
   if(load)load.style.display='none';
   const c=C();
-  box.innerHTML=g.photos.map((ph,si)=>`<img class="gallery-img${si===0?' active':''}" src="${ph.url}" alt="Car photo" onerror="this.style.display='none'" id="gimg-${i}-${si}"/>`).join('')
+  box.innerHTML=g.photos.map((ph,si)=>`<img class="gallery-img${si===0?' active':''}" src="${ph.url}" alt="Car photo" onerror="this.style.display='none'" id="gimg-${i}-${si}" onclick="openLightbox(${i},${si})"/>`).join('')
     +(g.photos.length>1?`<button class="gbtn gbtn-p" onclick="galNav(${i},-1)">‹</button><button class="gbtn gbtn-n" onclick="galNav(${i},1)">›</button><div class="gdots" id="gdots-${i}">${g.photos.map((_,si)=>`<div class="gdot" style="${si===0?`background:${c}`:''}" onclick="galJump(${i},${si})"></div>`).join('')}</div>`:'');
   // Update credit based on first photo source
   const credit=document.getElementById(`gcredit-${i}`);
@@ -2507,6 +2518,41 @@ async function loadHistoryArticle(id) {
   }
 }
 
+// ── LIGHTBOX ─────────────────────────────────────────────────────────────────
+let _lbGallery=-1, _lbPhoto=0;
+function openLightbox(galleryIdx, photoIdx) {
+  const g = galleries[galleryIdx];
+  if (!g || !g.photos || !g.photos.length) return;
+  _lbGallery = galleryIdx;
+  _lbPhoto = photoIdx;
+  lbRender();
+  document.getElementById('lightbox').classList.add('lb-open');
+  document.addEventListener('keydown', lbKey);
+}
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('lb-open');
+  document.removeEventListener('keydown', lbKey);
+}
+function lbBgClick(e) { if (e.target === document.getElementById('lightbox')) closeLightbox(); }
+function lbNav(dir) {
+  const g = galleries[_lbGallery];
+  if (!g) return;
+  _lbPhoto = (_lbPhoto + dir + g.photos.length) % g.photos.length;
+  lbRender();
+}
+function lbRender() {
+  const g = galleries[_lbGallery];
+  if (!g) return;
+  document.getElementById('lb-img').src = g.photos[_lbPhoto].url;
+  const nav = document.querySelectorAll('.lb-nav');
+  nav.forEach(b => b.style.display = g.photos.length > 1 ? 'block' : 'none');
+  document.getElementById('lb-counter').textContent = g.photos.length > 1 ? (_lbPhoto+1) + ' / ' + g.photos.length : '';
+}
+function lbKey(e) {
+  if (e.key === 'Escape') closeLightbox();
+  if (e.key === 'ArrowLeft') lbNav(-1);
+  if (e.key === 'ArrowRight') lbNav(1);
+}
 // ── FOLLOW-UP ─────────────────────────────────────────────────────────────────
 async function askFollowUp(){
   const input=document.getElementById('fu-input');
@@ -2654,5 +2700,12 @@ function renderAdminDashboard(d) {
 }
 </script>
 <script src="/pdf.js"></script>
+<div id="lightbox" class="lightbox" onclick="lbBgClick(event)">
+  <button class="lb-close" onclick="closeLightbox()">✕</button>
+  <button class="lb-nav lb-prev" onclick="lbNav(-1);event.stopPropagation()">‹</button>
+  <img class="lb-img" id="lb-img" src="" alt="Full size photo"/>
+  <button class="lb-nav lb-next" onclick="lbNav(1);event.stopPropagation()">›</button>
+  <div class="lb-counter" id="lb-counter"></div>
+</div>
 </body>
 </html>
