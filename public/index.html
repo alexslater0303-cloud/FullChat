@@ -632,7 +632,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
       <div class="plogo">FULL<span id="p-span">CHAT</span></div>
       <div class="p-persona-lbl" id="p-persona-lbl"></div>
     </div>
-    <div class="pbadge" id="p-badge" onclick="go('s-splash')">← BACK TO PERSONAS</div>
+    <div class="pbadge" id="p-badge" onclick="promptBack()">← BACK TO PERSONAS</div>
   </div>
   <div class="pbody">
     <div class="peyebrow" id="p-greeting">What do you want to know?</div>
@@ -946,6 +946,13 @@ function showToast(msg, warn) {
 const MAX_SHORTLIST = 4;
 let _shortlist = JSON.parse(localStorage.getItem('fc_shortlist') || '[]');
 let _slPrevScreen = 's-article';
+let _promptBackScreen = 's-splash';
+function promptBack() { go(_promptBackScreen || 's-splash'); }
+function updatePromptBack() {
+  var badge = document.getElementById('p-badge');
+  if (!badge) return;
+  badge.textContent = _promptBackScreen === 's-history' ? '← BACK TO ARTICLES' : '← BACK TO PERSONAS';
+}
 
 function saveShortlist() {
   localStorage.setItem('fc_shortlist', JSON.stringify(_shortlist));
@@ -1393,13 +1400,16 @@ function applyColor(c) {
   document.querySelectorAll('.fu-chip').forEach(el=>{el.style.borderColor=c;el.style.color=c;});
   const ds=document.getElementById('d-slider');
   if(ds) ds.style.background=`linear-gradient(to right,${c} 0%,${c} ${depth*50}%,#333 ${depth*50}%,#333 100%)`;
+  // Prompt screen badge + label — always sync with current persona colour
+  const pb=document.getElementById('p-badge');if(pb)pb.style.background=c;
+  const _ap=PERSONAS[persona];
+  const pl=document.getElementById('p-persona-lbl');if(pl&&_ap){pl.textContent=_ap.label;pl.style.color=c;}
 }
 
 function selectPersona(key) {
-  persona=key; const p=PERSONAS[key]; applyColor(p.color);
-  document.getElementById('p-badge').style.background=p.color;
-  const lbl=document.getElementById('p-persona-lbl');
-  if(lbl){lbl.textContent=p.label;lbl.style.color=p.color;}
+  persona=key;
+  _promptBackScreen='s-splash'; updatePromptBack();
+  applyColor(PERSONAS[key].color);
   go('s-prompt');
 }
 function setPrompt(t){document.getElementById('p-input').value=t;}
@@ -2443,6 +2453,7 @@ async function loadHistoryArticle(id) {
     const cars = finalArticle.articleType === 'single' ? [finalArticle.car] : (finalArticle.cars || []);
     fetchMedia(cars).then(() => renderArticle(finalArticle, articleIntent));
 
+    _promptBackScreen='s-history'; updatePromptBack();
     go('s-article');
   } catch(e) {
     wrap.innerHTML = '<div class="hist-empty">Couldn\'t load this article</div>';
