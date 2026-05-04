@@ -1596,7 +1596,7 @@ function renderSingleCar(a,c){
     <div class="srule"><div class="srule-line"></div><div class="srule-text">Alternatives</div><div class="srule-line"></div></div>
     <div style="margin-bottom:8px">
       ${(a.alternatives||[]).map(alt=>`
-        <div class="alt-card" onclick="generateAlternative('${esc(alt.make)}','${esc(alt.model)}')">
+        <div class="alt-card" onclick="generateAlternative('${esc(alt.make)}','${esc(alt.model)}',null,null,'')">
           <div>
             <div class="alt-make">${esc(alt.make)}</div>
             <div class="alt-model">${esc(alt.model)}</div>
@@ -1722,7 +1722,7 @@ function renderComparison(a,c){
           <div class="car-copy">${esc(car.copy)}</div>
           ${car.quote?`<div class="car-qblock" style="border-left-color:${c}"><div class="car-qtext">"${esc(car.quote)}"</div>${car.quoteAttribution?`<div class="car-qattr" style="color:${c}">— ${esc(car.quoteAttribution)}</div>`:''}</div>`:''}
           ${renderMarketplaceLinks(urls,c)}
-          <button class="deep-dive-btn" onclick="generateAlternative('${esc(car.make)}','${esc(car.model)}')" style="background:${c}">↓ DEEP DIVE · ${esc(car.make).toUpperCase()} ${esc(car.model).toUpperCase()}</button>
+          <button class="deep-dive-btn" onclick="generateAlternative('${esc(car.make)}','${esc(car.model)}',${car.yearFrom||'null'},${car.yearTo||'null'},'${esc(car.generation||'')}')" style="background:${c}">↓ DEEP DIVE · ${esc(car.make).toUpperCase()} ${esc(car.model).toUpperCase()}</button>
         </div>
       </div>`;
   }).join('');
@@ -1822,7 +1822,7 @@ function renderInterestingMentions(a, c) {
         <div class="imention-card-body">
           ${m.whyInteresting ? `<div class="imention-why">${esc(m.whyInteresting)}</div>` : ''}
           ${m.importNote ? `<div class="imention-note">${esc(m.importNote)}</div>` : ''}
-          <button class="deep-dive-btn" onclick="generateAlternative('${esc(m.make)}','${esc(m.model)}')" style="background:${c};margin-top:12px">↓ DEEP DIVE · ${esc(m.make).toUpperCase()} ${esc(m.model).toUpperCase()}</button>
+          <button class="deep-dive-btn" onclick="generateAlternative('${esc(m.make)}','${esc(m.model)}',${m.yearFrom||'null'},${m.yearTo||'null'},'${esc(m.generation||'')}')" style="background:${c};margin-top:12px">↓ DEEP DIVE · ${esc(m.make).toUpperCase()} ${esc(m.model).toUpperCase()}</button>
         </div>
       </div>`;
   }).join('');
@@ -1978,7 +1978,7 @@ function galUpdate(i){
 }
 
 // ── ALTERNATIVE — generate deep dive ─────────────────────────────────────────
-function generateAlternative(make, model) {
+function generateAlternative(make, model, yearFrom, yearTo, generation) {
   // Save current article so user can go back
   if (finalArticle) {
     previousArticle = finalArticle;
@@ -1987,12 +1987,16 @@ function generateAlternative(make, model) {
     // Show back button with parent headline
     const backBtn = document.getElementById('back-btn');
     if (backBtn) {
-      backBtn.textContent = '← ' + (finalArticle.headline || 'BACK').slice(0, 28).toUpperCase();
+      backBtn.textContent = '\u2190 ' + (finalArticle.headline || 'BACK').slice(0, 28).toUpperCase();
       backBtn.style.display = 'inline-block';
     }
   }
-  document.getElementById('p-input').value=`Deep dive on the ${make} ${model}`;
-  startPipeline(`Deep dive on the ${make} ${model}`);
+  // Build year/generation-specific prompt so Claude targets the right version
+  const yr = yearFrom && yearTo ? ' (' + yearFrom + '\u2013' + yearTo + ')' : yearFrom ? ' (' + yearFrom + '\u2013present)' : '';
+  const gen = generation ? ' ' + generation : '';
+  const prompt = 'Deep dive on the' + gen + ' ' + make + ' ' + model + yr;
+  document.getElementById('p-input').value = prompt;
+  startPipeline(prompt);
 }
 
 function goBack() {
@@ -2366,11 +2370,4 @@ function renderAdminDashboard(d) {
           ${f.comment?`<div class="adm-fb-comment">"${esc(f.comment)}"</div>`:''}
           <div class="adm-fb-prompt">${esc(f.prompt||'')}</div>
         </div>`).join('')}
-    </div>` : '<div class="adm-section"><div class="adm-section-title">Recent Feedback</div><div class="adm-loading" style="padding:20px 0">No feedback yet</div></div>';
-
-  document.getElementById('adm-body').innerHTML = errLogHtml + statsHtml + personaHtml + testersHtml + feedbackFiltered;
-}
-</script>
-<script src="/pdf.js"></script>
-</body>
-</html>
+    </div>` : '<div class="adm-section"><
