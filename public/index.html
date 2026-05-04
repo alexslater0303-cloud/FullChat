@@ -1723,18 +1723,32 @@ function genLabel(car) {
 }
 
 
+// Lookup map: key -> car data, populated by slBtn, used by toggleShortlistByKey
+const _slCarMap = {};
+
 function slBtn(car) {
   const active = isShortlisted(car.make, car.model, car.yearFrom);
   const full = !active && _shortlist.length >= MAX_SHORTLIST;
-  const stats = [
-    car.stat1_val ? {val: car.stat1_val, lbl: car.stat1_label||''} : null,
-    car.stat2_val ? {val: car.stat2_val, lbl: car.stat2_label||''} : null,
-    car.stat3_val ? {val: car.stat3_val, lbl: car.stat3_label||''} : null,
-  ].filter(Boolean);
-  const statsJson = JSON.stringify(stats).replace(/'/g, "\\'");
   const cls = 'sl-btn' + (active ? ' sl-active' : '') + (full ? ' sl-full' : '');
   const title = active ? 'Remove from shortlist' : full ? 'Shortlist full (max 4)' : 'Add to shortlist';
-  return '<button class="' + cls + '" title="' + title + '" onclick="toggleShortlist(\''+esc(car.make)+'\',\''+esc(car.model)+'\','+( car.yearFrom||'null')+','+(car.yearTo||'null')+',\''+esc(car.generation||'')+'\',\''+esc(car.badge||'')+'\','+JSON.stringify(stats).replace(/"/g,\'&quot;\')+')">' + (active ? '★' : '☆') + '</button>';
+  const key = [car.make, car.model, car.yearFrom || ''].join('|');
+  _slCarMap[key] = {
+    make: car.make, model: car.model,
+    yearFrom: car.yearFrom, yearTo: car.yearTo,
+    generation: car.generation || '', badge: car.badge || '',
+    stats: [
+      car.stat1_val ? {val: car.stat1_val, lbl: car.stat1_label||''} : null,
+      car.stat2_val ? {val: car.stat2_val, lbl: car.stat2_label||''} : null,
+      car.stat3_val ? {val: car.stat3_val, lbl: car.stat3_label||''} : null,
+    ].filter(Boolean)
+  };
+  return '<button class="' + cls + '" title="' + title + '" onclick="toggleShortlistByKey(' + JSON.stringify(key) + ')">' + (active ? '★' : '☆') + '</button>';
+}
+
+function toggleShortlistByKey(key) {
+  const car = _slCarMap[key];
+  if (!car) return;
+  toggleShortlist(car.make, car.model, car.yearFrom, car.yearTo, car.generation, car.badge, car.stats);
 }
 
 function renderSingleCar(a,c){
