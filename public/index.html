@@ -611,6 +611,10 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="2" rx="1" fill="currentColor"/><rect x="2" y="7" width="9" height="2" rx="1" fill="currentColor"/><rect x="2" y="11" width="6" height="2" rx="1" fill="currentColor"/></svg>
       MY ARTICLES
     </button>
+    <button class="hist-btn" id="sl-splash-btn" onclick="openShortlist()" style="margin-top:12px;">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><polygon points="8,2 10,6 14,6.5 11,9.5 11.8,14 8,12 4.2,14 5,9.5 2,6.5 6,6" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linejoin="round"/></svg>
+      MY SHORTLIST<span id="sl-splash-count" style="display:none;margin-left:8px;background:#1A1A1A;color:#F5F0E8;border-radius:2px;padding:0 5px;font-size:10px;">0</span>
+    </button>
   </div>
 </div>
 
@@ -632,7 +636,10 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
       <div class="plogo">FULL<span id="p-span">CHAT</span></div>
       <div class="p-persona-lbl" id="p-persona-lbl"></div>
     </div>
-    <div class="pbadge" id="p-badge" onclick="promptBack()">← BACK TO PERSONAS</div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <div class="pbadge" id="p-badge" onclick="promptBack()">← BACK TO PERSONAS</div>
+      <div class="pbadge" id="sl-prompt-btn" onclick="openShortlist()" style="display:flex;align-items:center;gap:6px;">★ MY SHORTLIST<span id="sl-prompt-count" style="display:none;background:rgba(255,255,255,0.3);border-radius:2px;padding:0 5px;">0</span></div>
+    </div>
   </div>
   <div class="pbody">
     <div class="peyebrow" id="p-greeting">What do you want to know?</div>
@@ -971,10 +978,19 @@ function updateSlNav() {
   var gc = document.getElementById('sl-g-count');
   if (gb) {
     var activeId = (document.querySelector('.screen.active') || {}).id || '';
-    var hidden = activeId === 's-shortlist' || activeId === 's-login' || activeId === 's-generating';
+    var hidden = activeId === 's-shortlist' || activeId === 's-login' || activeId === 's-generating'
+      || activeId === 's-splash' || activeId === 's-prompt';
     gb.style.display = hidden ? 'none' : 'flex';
     if (gc) { gc.textContent = n; gc.style.display = n > 0 ? 'inline-block' : 'none'; }
   }
+  // Splash screen shortlist button count
+  var sc = document.getElementById('sl-splash-count');
+  if (sc) { sc.textContent = n; sc.style.display = n > 0 ? 'inline-block' : 'none'; }
+  // Prompt screen shortlist badge count
+  var pc = document.getElementById('sl-prompt-count');
+  if (pc) { pc.textContent = n; pc.style.display = n > 0 ? 'inline-block' : 'none'; }
+  // Prompt screen badge gets persona colour via applyColor — sync splash btn border colour
+  var sb = document.getElementById('sl-splash-btn');
 }
 function isShortlisted(make, model, yearFrom) {
   return _shortlist.some(function(c) { return c.make === make && c.model === model && String(c.yearFrom) === String(yearFrom); });
@@ -1395,6 +1411,7 @@ function applyColor(c) {
   const bb=document.getElementById('back-btn');if(bb){bb.style.color=c;bb.style.borderColor=c;}
   const slnb=document.getElementById('sl-nav-btn');if(slnb){slnb.style.color=c;slnb.style.borderColor=c;}
   const slgb=document.getElementById('sl-global-btn');if(slgb){slgb.style.background=c;slgb.style.color='#F5F0E8';}
+  const slpb=document.getElementById('sl-prompt-btn');if(slpb){slpb.style.background=c;}
   const sb=document.getElementById('share-btn');if(sb){sb.style.color=c;sb.style.border=`1.5px solid ${c}`;}
   const av=document.getElementById('a-verified');if(av)av.style.background=c;
   const dv=document.getElementById('d-val');if(dv)dv.style.color=c;
