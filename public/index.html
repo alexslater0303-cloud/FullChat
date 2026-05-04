@@ -953,10 +953,20 @@ function saveShortlist() {
 }
 function updateSlNav() {
   var n = _shortlist.length;
+  // Article nav button
   var btn = document.getElementById('sl-nav-btn');
   var badge = document.getElementById('sl-badge');
   if (btn) btn.style.display = n > 0 ? 'inline-block' : 'none';
   if (badge) { badge.textContent = n; badge.style.display = n > 0 ? 'flex' : 'none'; }
+  // Global floating button — all screens except shortlist/login/generating
+  var gb = document.getElementById('sl-global-btn');
+  var gc = document.getElementById('sl-g-count');
+  if (gb) {
+    var activeId = (document.querySelector('.screen.active') || {}).id || '';
+    var hide = n === 0 || activeId === 's-shortlist' || activeId === 's-login' || activeId === 's-generating';
+    gb.style.display = hide ? 'none' : 'flex';
+    if (gc) gc.textContent = n;
+  }
 }
 function isShortlisted(make, model, yearFrom) {
   return _shortlist.some(function(c) { return c.make === make && c.model === model && String(c.yearFrom) === String(yearFrom); });
@@ -966,13 +976,14 @@ function toggleShortlist(make, model, yearFrom, yearTo, generation, badge, stats
   if (idx >= 0) {
     _shortlist.splice(idx, 1);
     saveShortlist();
-    if (finalArticle) renderArticle(finalArticle, articleIntent);
+    refreshSlBtns();
+    showToast('Removed from shortlist');
   } else {
-    if (_shortlist.length >= MAX_SHORTLIST) { showToast('Shortlist full — remove a car first', true); return; }
+    if (_shortlist.length >= MAX_SHORTLIST) { showToast('Shortlist full — max 4 cars', true); return; }
     _shortlist.push({ make: make, model: model, yearFrom: yearFrom, yearTo: yearTo, generation: generation, badge: badge, stats: stats });
     saveShortlist();
-    showToast('★ Added to shortlist');
-    if (finalArticle) renderArticle(finalArticle, articleIntent);
+    refreshSlBtns();
+    showToast('Added to shortlist (' + _shortlist.length + ' of ' + MAX_SHORTLIST + ')');
   }
 }
 // Lookup map so slBtn avoids inline JSON in onclick attrs
@@ -981,6 +992,19 @@ function toggleShortlistByKey(key) {
   var car = _slCarMap[key];
   if (!car) return;
   toggleShortlist(car.make, car.model, car.yearFrom, car.yearTo, car.generation, car.badge, car.stats);
+}
+// Lightweight in-place refresh of shortlist buttons without re-rendering article
+function refreshSlBtns() {
+  var n = _shortlist.length;
+  document.querySelectorAll('.sl-btn[data-sl-key]').forEach(function(btn) {
+    var key = btn.dataset.slKey;
+    var car = _slCarMap[key];
+    if (!car) return;
+    var active = isShortlisted(car.make, car.model, car.yearFrom);
+    var full = !active && n >= MAX_SHORTLIST;
+    btn.className = 'sl-btn' + (active ? ' sl-active' : '') + (full ? ' sl-full' : '');
+    btn.textContent = active ? '\u2715 Remove' : full ? 'Shortlist Full' : '+ Add to Shortlist';
+  });
 }
 function openShortlist() {
   var active = document.querySelector('.screen.active');
@@ -994,7 +1018,7 @@ function removeFromShortlist(idx) {
   _shortlist.splice(idx, 1);
   saveShortlist();
   renderShortlistScreen();
-  if (finalArticle) renderArticle(finalArticle, articleIntent);
+  refreshSlBtns();
 }
 function generateFromShortlist() {
   if (_shortlist.length < 2) return;
@@ -1318,6 +1342,7 @@ function go(id) {
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   window.scrollTo(0,0);
+  updateSlNav();
 }
 
 function buildPersonaList() {
@@ -1361,6 +1386,7 @@ function applyColor(c) {
   const nb=document.getElementById('a-nbtn');if(nb){nb.style.color=c;nb.style.border=`1.5px solid ${c}`;}
   const bb=document.getElementById('back-btn');if(bb){bb.style.color=c;bb.style.borderColor=c;}
   const slnb=document.getElementById('sl-nav-btn');if(slnb){slnb.style.color=c;slnb.style.borderColor=c;}
+  const slgb=document.getElementById('sl-global-btn');if(slgb){slgb.style.background=c;slgb.style.color='#F5F0E8';}
   const sb=document.getElementById('share-btn');if(sb){sb.style.color=c;sb.style.border=`1.5px solid ${c}`;}
   const av=document.getElementById('a-verified');if(av)av.style.background=c;
   const dv=document.getElementById('d-val');if(dv)dv.style.color=c;
@@ -1727,7 +1753,7 @@ function slBtn(car) {
   };
   // Use single-quote wrapping to avoid JSON double-quote breaking HTML attrs
   var safeKey = key.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-  return '<button class="' + cls + '" onclick="toggleShortlistByKey(\'' + safeKey + '\')">' + label + '</button>';
+  return '<button class="' + cls + '" data-sl-key="' + key.replace(/"/g, '&quot;') + '" onclick="toggleShortlistByKey(\'' + safeKey + '\')">' + label + '</button>';
 }
 
 function renderSingleCar(a,c){
