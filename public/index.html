@@ -501,6 +501,11 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 .fu-rewrite:hover{opacity:1;}
 .fu-rewrite:disabled{opacity:0.25;cursor:not-allowed;}
 .rewrite-banner{background:rgba(255,255,255,0.06);border-left:3px solid var(--ac,#C8102E);padding:10px 14px;border-radius:2px;font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:1px;color:#ccc;margin:8px 0;}
+.rw-status-label{margin-bottom:8px;}
+.rw-progress-track{height:2px;background:rgba(255,255,255,0.08);border-radius:1px;overflow:hidden;}
+.rw-progress-bar{height:100%;width:0%;background:var(--ac,#C8102E);border-radius:1px;transition:width 0.6s cubic-bezier(0.4,0,0.2,1);}
+.rw-done .rw-progress-bar{background:#1B6B3A;}
+.rw-done .rw-status-label{color:#7fcba0;}
 
 @keyframes fadeDown{from{opacity:0;transform:translateY(-14px)}to{opacity:1;transform:translateY(0)}}
 @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
@@ -2572,26 +2577,66 @@ async function rewriteArticle(){
   if(sendBtn)sendBtn.disabled=true;
   const p=P(),c=C();
   const thread=document.getElementById('convo');
-  thread.insertAdjacentHTML('beforeend',`<div class="msg-u"><div class="msg-ubub" style="background:${c}">${esc(feedback)}</div></div>`);
-  thread.insertAdjacentHTML('beforeend',`<div class="msg-a" id="rewrite-status"><div class="msg-albl" style="color:${c}">${p.name.split(' ')[1]}</div><div class="msg-abub rewrite-banner">✎ Rewriting article...</div></div>`);
-  thread.scrollIntoView({behavior:'smooth',block:'end'});
+  thread.insertAdjacentHTML('beforeend',);
+  thread.insertAdjacentHTML('beforeend',);
+  thread.scrollTop=thread.scrollHeight;
+
+  // Animated progress + cycling status messages
+  const stages=[
+    {pct:12, label:'✎ Analysing your feedback...'},
+    {pct:35, label:'✎ Rewriting sections...'},
+    {pct:60, label:'✎ Refining the copy...'},
+    {pct:80, label:'✎ Polishing the prose...'},
+    {pct:92, label:'✎ Almost there...'},
+  ];
+  let stageIdx=0;
+  const advanceStage=()=>{
+    const bar=document.getElementById('rw-progress');
+    const lbl=document.querySelector('#rewrite-status .rw-status-label');
+    if(!bar||!lbl)return;
+    if(stageIdx<stages.length){
+      bar.style.width=stages[stageIdx].pct+'%';
+      lbl.textContent=stages[stageIdx].label;
+      stageIdx++;
+    }
+  };
+  advanceStage();
+  const stageTimer=setInterval(advanceStage, 3500);
+
   try{
     const res=await fetch('/api/generate',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({mode:'rewrite',persona,inviteCode,depth,article:finalArticle,feedback})});
     const data=await res.json();
+    clearInterval(stageTimer);
     if(data.error){throw new Error(data.error);}
+    // Snap to 100% then render
+    const bar=document.getElementById('rw-progress');
+    const lbl=document.querySelector('#rewrite-status .rw-status-label');
+    const banner=document.querySelector('#rewrite-status .rewrite-banner');
+    if(bar)bar.style.width='100%';
+    if(lbl)lbl.textContent='✓ Article rewritten';
+    if(banner)banner.classList.add('rw-done');
+    await new Promise(r=>setTimeout(r,400));
     finalArticle=data.article;
     renderArticle(finalArticle,articleIntent);
     const statusEl=document.getElementById('rewrite-status');
-    if(statusEl)statusEl.querySelector('.rewrite-banner').textContent='✓ Article rewritten — scroll up to read';
+    if(statusEl){
+      const b=statusEl.querySelector('.rewrite-banner');
+      if(b)b.innerHTML='<div class="rw-status-label">✓ Article rewritten — scroll up to read</div><div class="rw-progress-track"><div class="rw-progress-bar" style="width:100%"></div></div>';
+      if(b)b.classList.add('rw-done');
+    }
     convo.push({role:'user',content:'[Rewrite request] '+feedback},{role:'assistant',content:'Article rewritten based on your feedback.'});
     if(currentHistoryId){
       fetch('/api/history',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:currentHistoryId,convo})}).catch(()=>{});
     }
   }catch(e){
+    clearInterval(stageTimer);
     const statusEl=document.getElementById('rewrite-status');
     console.error('Rewrite error:',e);
-    if(statusEl)statusEl.querySelector('.rewrite-banner').textContent='Rewrite failed: '+e.message;
+    if(statusEl){
+      const b=statusEl.querySelector('.rewrite-banner');
+      if(b)b.innerHTML='<div class="rw-status-label">✗ Rewrite failed — '+esc(e.message)+'</div>';
+    }
   }
   fuBusy=false;
   if(rwBtn)rwBtn.disabled=false;
