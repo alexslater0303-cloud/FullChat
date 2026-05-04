@@ -416,7 +416,7 @@ module.exports = async (req, res) => {
     try {
       const articleJson = JSON.stringify(existingArticle, null, 2);
       const r = await anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514', max_tokens: 8000,
+        model: 'claude-sonnet-4-6', max_tokens: 8000,
         system: p.systemPrompt,
         messages: [{
           role: 'user',
@@ -822,4 +822,6 @@ ${schema}`
   } catch(err) {
     console.error('Stream error:', err.message);
     send('error', { message: err.message || 'Generation failed' });
-    
+    res.end();
+  }
+};

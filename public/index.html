@@ -2591,7 +2591,8 @@ async function rewriteArticle(){
     if(data.tokens_remaining!==undefined) updateTokenDisplay(data.tokens_remaining);
   }catch(e){
     const statusEl=document.getElementById('rewrite-status');
-    if(statusEl)statusEl.querySelector('.rewrite-banner').textContent='Rewrite failed — try again.';
+    console.error('Rewrite error:',e);
+    if(statusEl)statusEl.querySelector('.rewrite-banner').textContent='Rewrite failed: '+e.message;
   }
   fuBusy=false;
   if(rwBtn)rwBtn.disabled=false;
