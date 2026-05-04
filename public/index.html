@@ -217,48 +217,6 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 .depr-note{font-family:'Barlow',sans-serif;font-size:12.5px;color:#777;line-height:1.5;border-left:2px solid #E0DBD3;padding-left:10px;}
 .depr-summary{font-family:'Barlow',sans-serif;font-size:13.5px;color:#333;line-height:1.6;padding:14px 16px;background:#F9F7F3;border-radius:4px;border-left:3px solid #D8D3CB;margin-top:4px;}
 
-/* Shortlist */
-.sl-btn{position:absolute;top:10px;right:10px;width:32px;height:32px;border-radius:50%;border:1.5px solid #D8D3CB;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;transition:all 0.15s;z-index:5;line-height:1;}
-.sl-btn:hover{border-color:#F5A623;transform:scale(1.1);}
-.sl-btn.sl-active{border-color:#F5A623;background:#FFF8EC;}
-.sl-btn.sl-full{opacity:0.4;cursor:not-allowed;}
-.sl-nav-btn{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;letter-spacing:3px;text-transform:uppercase;padding:7px 12px;border-radius:2px;cursor:pointer;border:1.5px solid currentColor;background:transparent;transition:opacity 0.15s;white-space:nowrap;position:relative;}
-.sl-nav-btn:hover{opacity:0.75;}
-.sl-badge{position:absolute;top:-6px;right:-6px;background:#F5A623;color:#fff;border-radius:50%;width:16px;height:16px;font-size:9px;font-weight:900;display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;}
-/* Shortlist screen */
-#s-shortlist{background:#F5F0E8;overflow-y:auto;}
-.sl-screen-hdr{background:#1A1A1A;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;}
-.sl-screen-logo{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:20px;color:#F5F0E8;letter-spacing:-0.5px;}
-.sl-screen-back{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#888;cursor:pointer;border:none;background:none;padding:6px 0;}
-.sl-screen-back:hover{color:#F5F0E8;}
-.sl-body{padding:24px;max-width:600px;margin:0 auto;}
-.sl-empty{text-align:center;padding:60px 20px;color:#AAA;font-family:'Barlow Condensed',sans-serif;font-size:14px;letter-spacing:2px;text-transform:uppercase;}
-.sl-empty-icon{font-size:40px;margin-bottom:12px;display:block;opacity:0.4;}
-.sl-count-lbl{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;letter-spacing:5px;text-transform:uppercase;color:#AAA;margin-bottom:16px;}
-.sl-card{background:#fff;border-radius:4px;border:1.5px solid #D8D3CB;padding:14px 16px;margin-bottom:10px;display:flex;align-items:flex-start;gap:12px;}
-.sl-card-info{flex:1;min-width:0;}
-.sl-card-make{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#888;}
-.sl-card-model{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:20px;line-height:1.1;margin-bottom:2px;}
-.sl-card-gen{font-size:11px;color:#AAA;margin-bottom:8px;}
-.sl-card-stats{display:flex;gap:16px;flex-wrap:wrap;}
-.sl-card-stat{display:flex;flex-direction:column;}
-.sl-card-stat-val{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:14px;line-height:1;}
-.sl-card-stat-lbl{font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#AAA;}
-.sl-card-remove{flex-shrink:0;width:28px;height:28px;border-radius:50%;border:1.5px solid #E0DBD3;background:transparent;cursor:pointer;font-size:14px;color:#AAA;transition:all 0.15s;display:flex;align-items:center;justify-content:center;}
-.sl-card-remove:hover{border-color:#C8102E;color:#C8102E;}
-.sl-actions{margin-top:20px;display:flex;flex-direction:column;gap:10px;}
-.sl-vs-btn{width:100%;padding:16px;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:15px;letter-spacing:4px;text-transform:uppercase;border:none;border-radius:4px;background:#1A1A1A;color:#F5F0E8;cursor:pointer;transition:opacity 0.15s;}
-.sl-vs-btn:hover{opacity:0.85;}
-.sl-vs-btn:disabled{opacity:0.35;cursor:not-allowed;}
-.sl-clear-btn{width:100%;padding:12px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:11px;letter-spacing:3px;text-transform:uppercase;border:1.5px solid #D8D3CB;border-radius:4px;background:transparent;color:#AAA;cursor:pointer;transition:all 0.15s;}
-.sl-clear-btn:hover{border-color:#C8102E;color:#C8102E;}
-.sl-hint{font-family:'Barlow',sans-serif;font-size:12px;color:#AAA;text-align:center;line-height:1.5;}
-
-/* Toast */
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:#1A1A1A;color:#F5F0E8;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;letter-spacing:2px;text-transform:uppercase;padding:12px 20px;border-radius:4px;box-shadow:0 4px 16px rgba(0,0,0,0.25);z-index:9999;transition:transform 0.25s ease,opacity 0.25s ease;opacity:0;pointer-events:none;white-space:nowrap;}
-.toast.toast-show{transform:translateX(-50%) translateY(0);opacity:1;}
-.toast.toast-warn{background:#C8102E;}
-
 /* VS Mode */
 .vs-grid{display:grid;gap:16px;margin-bottom:24px;}
 .vs-grid-2{grid-template-columns:1fr 1fr;}
@@ -584,6 +542,47 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
   .prow{padding:26px 0;}
   .pname{font-size:32px;}
 }
+
+/* Toast */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:#1A1A1A;color:#F5F0E8;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;letter-spacing:2px;text-transform:uppercase;padding:12px 20px;border-radius:4px;box-shadow:0 4px 16px rgba(0,0,0,0.25);z-index:9999;transition:transform 0.25s ease,opacity 0.25s ease;opacity:0;pointer-events:none;white-space:nowrap;}
+.toast.toast-show{transform:translateX(-50%) translateY(0);opacity:1;}
+.toast.toast-warn{background:#C8102E;}
+
+/* Shortlist */
+.sl-btn{position:absolute;top:10px;right:10px;width:32px;height:32px;border-radius:50%;border:1.5px solid #D8D3CB;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;transition:all 0.15s;z-index:5;line-height:1;}
+.sl-btn:hover{border-color:#F5A623;transform:scale(1.1);}
+.sl-btn.sl-active{border-color:#F5A623;background:#FFF8EC;}
+.sl-btn.sl-full{opacity:0.4;cursor:not-allowed;}
+.sl-nav-btn{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;letter-spacing:3px;text-transform:uppercase;padding:7px 12px;border-radius:2px;cursor:pointer;border:1.5px solid currentColor;background:transparent;transition:opacity 0.15s;white-space:nowrap;position:relative;}
+.sl-nav-btn:hover{opacity:0.75;}
+.sl-badge{position:absolute;top:-6px;right:-6px;background:#F5A623;color:#fff;border-radius:50%;width:16px;height:16px;font-size:9px;font-weight:900;display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;}
+#s-shortlist{background:#F5F0E8;overflow-y:auto;}
+.sl-screen-hdr{background:#1A1A1A;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;}
+.sl-screen-logo{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:20px;color:#F5F0E8;}
+.sl-screen-back{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#888;cursor:pointer;border:none;background:none;padding:6px 0;}
+.sl-screen-back:hover{color:#F5F0E8;}
+.sl-body{padding:24px;max-width:600px;margin:0 auto;}
+.sl-empty{text-align:center;padding:60px 20px;color:#AAA;font-family:'Barlow Condensed',sans-serif;font-size:14px;letter-spacing:2px;text-transform:uppercase;}
+.sl-empty-icon{font-size:40px;margin-bottom:12px;display:block;opacity:0.4;}
+.sl-count-lbl{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;letter-spacing:5px;text-transform:uppercase;color:#AAA;margin-bottom:16px;}
+.sl-card{background:#fff;border-radius:4px;border:1.5px solid #D8D3CB;padding:14px 16px;margin-bottom:10px;display:flex;align-items:flex-start;gap:12px;}
+.sl-card-info{flex:1;min-width:0;}
+.sl-card-make{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#888;}
+.sl-card-model{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:20px;line-height:1.1;margin-bottom:2px;}
+.sl-card-gen{font-size:11px;color:#AAA;margin-bottom:8px;}
+.sl-card-stats{display:flex;gap:16px;flex-wrap:wrap;}
+.sl-card-stat{display:flex;flex-direction:column;}
+.sl-card-stat-val{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:14px;line-height:1;}
+.sl-card-stat-lbl{font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#AAA;}
+.sl-card-remove{flex-shrink:0;width:28px;height:28px;border-radius:50%;border:1.5px solid #E0DBD3;background:transparent;cursor:pointer;font-size:14px;color:#AAA;transition:all 0.15s;display:flex;align-items:center;justify-content:center;}
+.sl-card-remove:hover{border-color:#C8102E;color:#C8102E;}
+.sl-actions{margin-top:20px;display:flex;flex-direction:column;gap:10px;}
+.sl-vs-btn{width:100%;padding:16px;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:15px;letter-spacing:4px;text-transform:uppercase;border:none;border-radius:4px;background:#1A1A1A;color:#F5F0E8;cursor:pointer;transition:opacity 0.15s;}
+.sl-vs-btn:hover{opacity:0.85;}
+.sl-vs-btn:disabled{opacity:0.35;cursor:not-allowed;}
+.sl-clear-btn{width:100%;padding:12px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:11px;letter-spacing:3px;text-transform:uppercase;border:1.5px solid #D8D3CB;border-radius:4px;background:transparent;color:#AAA;cursor:pointer;transition:all 0.15s;}
+.sl-clear-btn:hover{border-color:#C8102E;color:#C8102E;}
+.sl-hint{font-family:'Barlow',sans-serif;font-size:12px;color:#AAA;text-align:center;line-height:1.5;}
 </style>
 </head>
 <body>
@@ -656,11 +655,12 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
   </div>
 </div>
 
+<div class="toast" id="toast"></div>
 
 <div id="s-shortlist" class="screen">
   <div class="sl-screen-hdr">
     <div class="sl-screen-logo">FULL<span style="color:#F5A623">LIST</span></div>
-    <button class="sl-screen-back" id="sl-back-btn" onclick="closeShortlist()">← BACK</button>
+    <button class="sl-screen-back" onclick="closeShortlist()">← BACK</button>
   </div>
   <div class="sl-body">
     <div id="sl-content"></div>
@@ -670,8 +670,6 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
     </div>
   </div>
 </div>
-
-<div class="toast" id="toast"></div>
 
 <!-- GENERATING -->
 <div id="s-generating" class="screen">
@@ -938,11 +936,10 @@ function showToast(msg, warn) {
   if (!el) return;
   el.textContent = msg;
   el.className = 'toast' + (warn ? ' toast-warn' : '');
-  // Force reflow so transition fires
   void el.offsetWidth;
   el.classList.add('toast-show');
   if (_toastTimer) clearTimeout(_toastTimer);
-  _toastTimer = setTimeout(() => { el.classList.remove('toast-show'); }, 2500);
+  _toastTimer = setTimeout(function() { el.classList.remove('toast-show'); }, 2500);
 }
 
 // ── SHORTLIST ──────────────────────────────────────────────────────────────────
@@ -954,84 +951,74 @@ function saveShortlist() {
   localStorage.setItem('fc_shortlist', JSON.stringify(_shortlist));
   updateSlNav();
 }
-
 function updateSlNav() {
-  const n = _shortlist.length;
-  const btn = document.getElementById('sl-nav-btn');
-  const badge = document.getElementById('sl-badge');
+  var n = _shortlist.length;
+  var btn = document.getElementById('sl-nav-btn');
+  var badge = document.getElementById('sl-badge');
   if (btn) btn.style.display = n > 0 ? 'inline-block' : 'none';
   if (badge) { badge.textContent = n; badge.style.display = n > 0 ? 'flex' : 'none'; }
 }
-
 function isShortlisted(make, model, yearFrom) {
-  return _shortlist.some(c => c.make === make && c.model === model && String(c.yearFrom) === String(yearFrom));
+  return _shortlist.some(function(c) { return c.make === make && c.model === model && String(c.yearFrom) === String(yearFrom); });
 }
-
 function toggleShortlist(make, model, yearFrom, yearTo, generation, badge, stats) {
-  const idx = _shortlist.findIndex(c => c.make === make && c.model === model && String(c.yearFrom) === String(yearFrom));
+  var idx = _shortlist.findIndex(function(c) { return c.make === make && c.model === model && String(c.yearFrom) === String(yearFrom); });
   if (idx >= 0) {
     _shortlist.splice(idx, 1);
+    saveShortlist();
+    if (finalArticle) renderArticle(finalArticle, articleIntent);
   } else {
     if (_shortlist.length >= MAX_SHORTLIST) { showToast('Shortlist full — remove a car first', true); return; }
-    _shortlist.push({ make, model, yearFrom, yearTo, generation, badge, stats });
+    _shortlist.push({ make: make, model: model, yearFrom: yearFrom, yearTo: yearTo, generation: generation, badge: badge, stats: stats });
+    saveShortlist();
+    showToast('★ Added to shortlist');
+    if (finalArticle) renderArticle(finalArticle, articleIntent);
   }
-  const wasAdded = idx < 0; // idx was -1 before adding
-  saveShortlist();
-  if (wasAdded) showToast('★ Added to shortlist');
-  // Refresh article to update button states
-  if (finalArticle) renderArticle(finalArticle, articleIntent);
 }
-
+// Lookup map so slBtn avoids inline JSON in onclick attrs
+var _slCarMap = {};
+function toggleShortlistByKey(key) {
+  var car = _slCarMap[key];
+  if (!car) return;
+  toggleShortlist(car.make, car.model, car.yearFrom, car.yearTo, car.generation, car.badge, car.stats);
+}
 function openShortlist() {
-  const active = document.querySelector('.screen.active');
+  var active = document.querySelector('.screen.active');
   _slPrevScreen = active ? active.id : 's-article';
   renderShortlistScreen();
   go('s-shortlist');
 }
-
-function closeShortlist() {
-  go(_slPrevScreen || 's-article');
-}
-
-function clearShortlist() {
-  _shortlist = [];
-  saveShortlist();
-  renderShortlistScreen();
-}
-
+function closeShortlist() { go(_slPrevScreen || 's-article'); }
+function clearShortlist() { _shortlist = []; saveShortlist(); renderShortlistScreen(); }
 function removeFromShortlist(idx) {
   _shortlist.splice(idx, 1);
   saveShortlist();
   renderShortlistScreen();
   if (finalArticle) renderArticle(finalArticle, articleIntent);
 }
-
 function generateFromShortlist() {
   if (_shortlist.length < 2) return;
-  const prompt = _shortlist.map(c => {
-    const yr = c.yearFrom && c.yearTo ? ' (' + c.yearFrom + '\u2013' + c.yearTo + ')' : '';
-    const gen = c.generation ? ' ' + c.generation : '';
+  var prompt = _shortlist.map(function(c) {
+    var yr = c.yearFrom && c.yearTo ? ' (' + c.yearFrom + '–' + c.yearTo + ')' : '';
+    var gen = c.generation ? ' ' + c.generation : '';
     return gen + ' ' + c.make + ' ' + c.model + yr;
   }).join(' vs ');
   closeShortlist();
   startPipeline(prompt.trim());
 }
-
 function renderShortlistScreen() {
-  const content = document.getElementById('sl-content');
-  const vsBtn = document.getElementById('sl-vs-btn');
+  var content = document.getElementById('sl-content');
+  var vsBtn = document.getElementById('sl-vs-btn');
   if (!content) return;
-
   if (_shortlist.length === 0) {
     content.innerHTML = '<div class="sl-empty"><span class="sl-empty-icon">★</span>Your shortlist is empty.<br>Tap ★ on any car card to add it.</div>';
     if (vsBtn) { vsBtn.disabled = true; vsBtn.textContent = '⚔ GENERATE VS BATTLE'; }
     return;
   }
-
-  const cards = _shortlist.map((car, i) => {
-    const statsHtml = (car.stats || []).slice(0, 3).map(s =>
-      '<div class="sl-card-stat"><span class="sl-card-stat-val">' + esc(s.val) + '</span><span class="sl-card-stat-lbl">' + esc(s.lbl) + '</span></div>'
-    ).join('');
+  var cards = _shortlist.map(function(car, i) {
+    var statsHtml = (car.stats || []).slice(0, 3).map(function(s) {
+      return '<div class="sl-card-stat"><span class="sl-card-stat-val">' + esc(s.val) + '</span><span class="sl-card-stat-lbl">' + esc(s.lbl) + '</span></div>';
+    }).join('');
     return '<div class="sl-card">'
       + '<div class="sl-card-info">'
       + '<div class="sl-card-make">' + esc(car.make) + '</div>'
@@ -1042,20 +1029,17 @@ function renderShortlistScreen() {
       + '<button class="sl-card-remove" onclick="removeFromShortlist(' + i + ')" title="Remove">✕</button>'
       + '</div>';
   }).join('');
-
-  const countLbl = _shortlist.length + ' of ' + MAX_SHORTLIST + ' cars shortlisted';
-  const hint = _shortlist.length < 2 ? '<p class="sl-hint" style="margin-top:8px">Add at least 2 cars to generate a VS battle</p>' : '';
-
-  content.innerHTML = '<div class="sl-count-lbl">' + countLbl + '</div>' + cards + hint;
-
+  var hint = _shortlist.length < 2 ? '<p class="sl-hint" style="margin-top:8px">Add at least 2 cars to generate a VS battle</p>' : '';
+  content.innerHTML = '<div class="sl-count-lbl">' + _shortlist.length + ' of ' + MAX_SHORTLIST + ' shortlisted</div>' + cards + hint;
   if (vsBtn) {
     vsBtn.disabled = _shortlist.length < 2;
-    const names = _shortlist.map(c => c.make + ' ' + c.model).join(' vs ');
-    vsBtn.textContent = '⚔ ' + (_shortlist.length >= 2 ? names.toUpperCase() : 'GENERATE VS BATTLE');
+    if (_shortlist.length >= 2) {
+      vsBtn.textContent = '⚔ ' + _shortlist.map(function(c) { return c.make + ' ' + c.model; }).join(' vs ').toUpperCase();
+    } else {
+      vsBtn.textContent = '⚔ GENERATE VS BATTLE';
+    }
   }
 }
-
-
 let galleries={}, ytVideos={}, ytExpanded={};
 let currentStep=0;
 let _currentDisplayGear = '1ST';
@@ -1376,6 +1360,7 @@ function applyColor(c) {
   const bgh=document.getElementById('a-bghdr');if(bgh)bgh.style.background=c;
   const nb=document.getElementById('a-nbtn');if(nb){nb.style.color=c;nb.style.border=`1.5px solid ${c}`;}
   const bb=document.getElementById('back-btn');if(bb){bb.style.color=c;bb.style.borderColor=c;}
+  const slnb=document.getElementById('sl-nav-btn');if(slnb){slnb.style.color=c;slnb.style.borderColor=c;}
   const sb=document.getElementById('share-btn');if(sb){sb.style.color=c;sb.style.border=`1.5px solid ${c}`;}
   const av=document.getElementById('a-verified');if(av)av.style.background=c;
   const dv=document.getElementById('d-val');if(dv)dv.style.color=c;
@@ -1723,15 +1708,13 @@ function genLabel(car) {
 }
 
 
-// Lookup map: key -> car data, populated by slBtn, used by toggleShortlistByKey
-const _slCarMap = {};
-
+// Shortlist button — uses lookup map to avoid inline JSON in onclick
 function slBtn(car) {
-  const active = isShortlisted(car.make, car.model, car.yearFrom);
-  const full = !active && _shortlist.length >= MAX_SHORTLIST;
-  const cls = 'sl-btn' + (active ? ' sl-active' : '') + (full ? ' sl-full' : '');
-  const title = active ? 'Remove from shortlist' : full ? 'Shortlist full (max 4)' : 'Add to shortlist';
-  const key = [car.make, car.model, car.yearFrom || ''].join('|');
+  var active = isShortlisted(car.make, car.model, car.yearFrom);
+  var full = !active && _shortlist.length >= MAX_SHORTLIST;
+  var cls = 'sl-btn' + (active ? ' sl-active' : '') + (full ? ' sl-full' : '');
+  var title = active ? 'Remove from shortlist' : full ? 'Shortlist full (max 4)' : 'Add to shortlist';
+  var key = [car.make, car.model, car.yearFrom || ''].join('|');
   _slCarMap[key] = {
     make: car.make, model: car.model,
     yearFrom: car.yearFrom, yearTo: car.yearTo,
@@ -1739,16 +1722,10 @@ function slBtn(car) {
     stats: [
       car.stat1_val ? {val: car.stat1_val, lbl: car.stat1_label||''} : null,
       car.stat2_val ? {val: car.stat2_val, lbl: car.stat2_label||''} : null,
-      car.stat3_val ? {val: car.stat3_val, lbl: car.stat3_label||''} : null,
+      car.stat3_val ? {val: car.stat3_val, lbl: car.stat3_label||''} : null
     ].filter(Boolean)
   };
   return '<button class="' + cls + '" title="' + title + '" onclick="toggleShortlistByKey(' + JSON.stringify(key) + ')">' + (active ? '★' : '☆') + '</button>';
-}
-
-function toggleShortlistByKey(key) {
-  const car = _slCarMap[key];
-  if (!car) return;
-  toggleShortlist(car.make, car.model, car.yearFrom, car.yearTo, car.generation, car.badge, car.stats);
 }
 
 function renderSingleCar(a,c){
@@ -2203,15 +2180,13 @@ function generateAlternative(make, model, yearFrom, yearTo, generation) {
     previousArticle = finalArticle;
     previousIntent = articleIntent;
     previousHistoryId = currentHistoryId;
-    // Show back button with parent headline
     const backBtn = document.getElementById('back-btn');
     if (backBtn) {
-      backBtn.textContent = '\u2190 ' + (finalArticle.headline || 'BACK').slice(0, 28).toUpperCase();
+      backBtn.textContent = '← ' + (finalArticle.headline || 'BACK').slice(0, 28).toUpperCase();
       backBtn.style.display = 'inline-block';
     }
   }
-  // Build year/generation-specific prompt so Claude targets the right version
-  const yr = yearFrom && yearTo ? ' (' + yearFrom + '\u2013' + yearTo + ')' : yearFrom ? ' (' + yearFrom + '\u2013present)' : '';
+  const yr = yearFrom && yearTo ? ' (' + yearFrom + '–' + yearTo + ')' : yearFrom ? ' (' + yearFrom + '–present)' : '';
   const gen = generation ? ' ' + generation : '';
   const prompt = 'Deep dive on the' + gen + ' ' + make + ' ' + model + yr;
   document.getElementById('p-input').value = prompt;
@@ -2589,4 +2564,11 @@ function renderAdminDashboard(d) {
           ${f.comment?`<div class="adm-fb-comment">"${esc(f.comment)}"</div>`:''}
           <div class="adm-fb-prompt">${esc(f.prompt||'')}</div>
         </div>`).join('')}
-    </div>` : '<div class="adm-section"><
+    </div>` : '<div class="adm-section"><div class="adm-section-title">Recent Feedback</div><div class="adm-loading" style="padding:20px 0">No feedback yet</div></div>';
+
+  document.getElementById('adm-body').innerHTML = errLogHtml + statsHtml + personaHtml + testersHtml + feedbackFiltered;
+}
+</script>
+<script src="/pdf.js"></script>
+</body>
+</html>
