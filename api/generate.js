@@ -365,7 +365,7 @@ module.exports = async (req, res) => {
 
   const { prompt, persona, depth=1, inviteCode, mode='article', context='', history=[] } = req.body || {};
 
-  if (!prompt)     return res.status(400).json({ error: 'prompt is required' });
+  if (!prompt && mode !== 'rewrite') return res.status(400).json({ error: 'prompt is required' });
   if (!persona)    return res.status(400).json({ error: 'persona is required' });
   if (!inviteCode) return res.status(400).json({ error: 'inviteCode is required' });
   if (!PERSONAS[persona]) return res.status(400).json({ error: 'Invalid persona' });
@@ -822,6 +822,4 @@ ${schema}`
   } catch(err) {
     console.error('Stream error:', err.message);
     send('error', { message: err.message || 'Generation failed' });
-    res.end();
-  }
-};
+    
