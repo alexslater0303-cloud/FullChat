@@ -582,6 +582,13 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 .sl-vs-btn:disabled{opacity:0.35;cursor:not-allowed;}
 .sl-clear-btn{width:100%;padding:12px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:11px;letter-spacing:3px;text-transform:uppercase;border:1.5px solid #D8D3CB;border-radius:4px;background:transparent;color:#AAA;cursor:pointer;transition:all 0.15s;}
 .sl-clear-btn:hover{border-color:#C8102E;color:#C8102E;}
+.sl-persona-row{display:flex;gap:8px;margin-bottom:4px;flex-wrap:wrap;}
+.sl-persona-chip{flex:1;min-width:80px;padding:10px 8px;border-radius:4px;border:2px solid #D8D3CB;background:#fff;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;transition:all 0.15s;}
+.sl-persona-chip:hover{border-color:#1A1A1A;}
+.sl-persona-chip.sl-persona-active{border-color:var(--chip-color,#1A1A1A);background:rgba(0,0,0,0.04);}
+.sl-persona-chip svg{display:block;}
+.sl-persona-chip-lbl{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:9px;letter-spacing:2px;text-transform:uppercase;text-align:center;color:#1A1A1A;}
+.sl-persona-ttl{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#888;margin-bottom:8px;}
 .sl-hint{font-family:'Barlow',sans-serif;font-size:12px;color:#AAA;text-align:center;line-height:1.5;}
 </style>
 </head>
@@ -672,6 +679,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
   <div class="sl-body">
     <div id="sl-content"></div>
     <div class="sl-actions">
+      <div class="sl-persona-ttl">Choose your voice</div>
+      <div class="sl-persona-row" id="sl-persona-row"></div>
       <button class="sl-vs-btn" id="sl-vs-btn" onclick="generateFromShortlist()">⚔ GENERATE VS BATTLE</button>
       <button class="sl-clear-btn" onclick="clearShortlist()">✕ CLEAR SHORTLIST</button>
     </div>
@@ -1008,6 +1017,28 @@ function toggleShortlistByKey(key) {
   if (!car) return;
   toggleShortlist(car.make, car.model, car.yearFrom, car.yearTo, car.generation, car.badge, car.stats);
 }
+// Track which persona the shortlist VS battle will use
+var _slPersona = null; // null = use current persona
+function renderSlPersonaPicker() {
+  var row = document.getElementById('sl-persona-row');
+  if (!row) return;
+  var active = _slPersona || persona;
+  row.innerHTML = Object.keys(PERSONAS).map(function(key) {
+    var p = PERSONAS[key];
+    var isActive = key === active;
+    var icon = PERSONA_ICONS[key] || '';
+    return '<div class="sl-persona-chip' + (isActive ? ' sl-persona-active' : '') + '" '
+      + 'style="--chip-color:' + p.color + (isActive ? ';border-color:' + p.color : '') + '" '
+      + 'onclick="setSlPersona(\"' + key + '\")">'
+      + icon
+      + '<span class="sl-persona-chip-lbl">' + p.name.split(' ').slice(1).join(' ') + '</span>'
+      + '</div>';
+  }).join('');
+}
+function setSlPersona(key) {
+  _slPersona = key;
+  renderSlPersonaPicker();
+}
 // Lightweight in-place refresh of shortlist buttons without re-rendering article
 function refreshSlBtns() {
   var n = _shortlist.length;
@@ -1042,6 +1073,12 @@ function generateFromShortlist() {
     var gen = c.generation ? ' ' + c.generation : '';
     return gen + ' ' + c.make + ' ' + c.model + yr;
   }).join(' vs ');
+  // Switch persona if user picked one on the shortlist screen
+  if (_slPersona && _slPersona !== persona) {
+    persona = _slPersona;
+    applyColor(PERSONAS[persona].color);
+  }
+  _slPersona = null; // reset for next time
   closeShortlist();
   startPipeline(prompt.trim());
 }
@@ -1052,6 +1089,7 @@ function renderShortlistScreen() {
   if (_shortlist.length === 0) {
     content.innerHTML = '<div class="sl-empty"><span class="sl-empty-icon">★</span>Your shortlist is empty.<br>Tap ★ on any car card to add it.</div>';
     if (vsBtn) { vsBtn.disabled = true; vsBtn.textContent = '⚔ GENERATE VS BATTLE'; }
+    renderSlPersonaPicker();
     return;
   }
   var cards = _shortlist.map(function(car, i) {
@@ -1070,6 +1108,7 @@ function renderShortlistScreen() {
   }).join('');
   var hint = _shortlist.length < 2 ? '<p class="sl-hint" style="margin-top:8px">Add at least 2 cars to generate a VS battle</p>' : '';
   content.innerHTML = '<div class="sl-count-lbl">' + _shortlist.length + ' of ' + MAX_SHORTLIST + ' shortlisted</div>' + cards + hint;
+  renderSlPersonaPicker();
   if (vsBtn) {
     vsBtn.disabled = _shortlist.length < 2;
     if (_shortlist.length >= 2) {
