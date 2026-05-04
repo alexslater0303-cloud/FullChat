@@ -1524,6 +1524,7 @@ function emailErrorReport(e) {
 }
 
 async function startPipeline(customPrompt) {
+  _promptBackScreen = 's-splash'; updatePromptBack();
   const catEl0=document.getElementById('a-cat'); if(catEl0) delete catEl0.dataset.cache;
   // Clear back navigation unless triggered from generateAlternative (which sets it first)
   if (!previousArticle) { const bb=document.getElementById('back-btn'); if(bb) bb.style.display='none'; }
