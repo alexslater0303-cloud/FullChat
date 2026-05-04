@@ -2588,7 +2588,6 @@ async function rewriteArticle(){
     if(currentHistoryId){
       fetch('/api/history',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:currentHistoryId,convo})}).catch(()=>{});
     }
-    if(data.tokens_remaining!==undefined) updateTokenDisplay(data.tokens_remaining);
   }catch(e){
     const statusEl=document.getElementById('rewrite-status');
     console.error('Rewrite error:',e);
