@@ -553,9 +553,6 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 .sl-btn:hover{background:#C8102E;color:#fff;}
 .sl-btn.sl-active{background:#C8102E;color:#fff;border-color:#C8102E;}
 .sl-btn.sl-full{opacity:0.4;cursor:not-allowed;border-color:#999;color:#999;}
-.sl-nav-btn{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;letter-spacing:3px;text-transform:uppercase;padding:7px 12px;border-radius:2px;cursor:pointer;border:1.5px solid currentColor;background:transparent;transition:opacity 0.15s;white-space:nowrap;position:relative;}
-.sl-nav-btn:hover{opacity:0.75;}
-.sl-badge{position:absolute;top:-6px;right:-6px;background:#F5A623;color:#fff;border-radius:50%;width:16px;height:16px;font-size:9px;font-weight:900;display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;}
 #s-shortlist{background:#F5F0E8;overflow-y:auto;}
 .sl-screen-hdr{background:#1A1A1A;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;}
 .sl-screen-logo{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:20px;color:#F5F0E8;}
@@ -744,7 +741,6 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
     <div class="anav-logo">FULL<span id="a-span">CHAT</span></div>
     <div class="anav-right">
       <button class="back-btn" id="back-btn" onclick="goBack()">← BACK</button>
-      <button class="sl-nav-btn" id="sl-nav-btn" onclick="openShortlist()" style="display:none">MY SHORTLIST<span class="sl-badge" id="sl-badge" style="display:none">0</span></button>
       <div class="share-wrap" id="share-wrap">
         <button class="share-btn" id="share-btn" onclick="toggleSharePanel()">⬆ SHARE</button>
         <div class="share-panel" id="share-panel">
@@ -968,11 +964,6 @@ function saveShortlist() {
 }
 function updateSlNav() {
   var n = _shortlist.length;
-  // Article nav button (keep in sync)
-  var btn = document.getElementById('sl-nav-btn');
-  var badge = document.getElementById('sl-badge');
-  if (btn) btn.style.display = n > 0 ? 'inline-block' : 'none';
-  if (badge) { badge.textContent = n; badge.style.display = n > 0 ? 'flex' : 'none'; }
   // Global floating button — always visible except on shortlist/login/generating screens
   var gb = document.getElementById('sl-global-btn');
   var gc = document.getElementById('sl-g-count');
@@ -1409,7 +1400,6 @@ function applyColor(c) {
   const bgh=document.getElementById('a-bghdr');if(bgh)bgh.style.background=c;
   const nb=document.getElementById('a-nbtn');if(nb){nb.style.color=c;nb.style.border=`1.5px solid ${c}`;}
   const bb=document.getElementById('back-btn');if(bb){bb.style.color=c;bb.style.borderColor=c;}
-  const slnb=document.getElementById('sl-nav-btn');if(slnb){slnb.style.color=c;slnb.style.borderColor=c;}
   const slgb=document.getElementById('sl-global-btn');if(slgb){slgb.style.background=c;slgb.style.color='#F5F0E8';}
   const slpb=document.getElementById('sl-prompt-btn');if(slpb){slpb.style.background=c;}
   const sb=document.getElementById('share-btn');if(sb){sb.style.color=c;sb.style.border=`1.5px solid ${c}`;}
