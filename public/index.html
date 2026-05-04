@@ -2577,8 +2577,8 @@ async function rewriteArticle(){
   if(sendBtn)sendBtn.disabled=true;
   const p=P(),c=C();
   const thread=document.getElementById('convo');
-  thread.insertAdjacentHTML('beforeend',);
-  thread.insertAdjacentHTML('beforeend',);
+  thread.insertAdjacentHTML('beforeend',`<div class="msg-u"><div class="msg-ubub" style="background:${c}">${esc(feedback)}</div></div>`);
+  thread.insertAdjacentHTML('beforeend',`<div class="msg-a" id="rewrite-status"><div class="msg-albl" style="color:${c}">${p.name.split(' ')[1]}</div><div class="msg-abub rewrite-banner"><div class="rw-status-label">✎ Analysing your feedback...</div><div class="rw-progress-track"><div class="rw-progress-bar" id="rw-progress"></div></div></div></div>`);
   thread.scrollTop=thread.scrollHeight;
 
   // Animated progress + cycling status messages
