@@ -1026,7 +1026,7 @@ function renderSlPersonaPicker() {
   row.innerHTML = Object.keys(PERSONAS).map(function(key) {
     var p = PERSONAS[key];
     var isActive = key === active;
-    var icon = PERSONA_ICONS[key] || '';
+    var icon = PSVG[key] || '';
     return '<div class="sl-persona-chip' + (isActive ? ' sl-persona-active' : '') + '" '
       + 'style="--chip-color:' + p.color + (isActive ? ';border-color:' + p.color : '') + '" '
       + 'onclick="setSlPersona(\"' + key + '\")">'
