@@ -549,10 +549,10 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 .toast.toast-warn{background:#C8102E;}
 
 /* Shortlist */
-.sl-btn{position:absolute;top:10px;right:10px;width:32px;height:32px;border-radius:50%;border:1.5px solid #D8D3CB;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;transition:all 0.15s;z-index:5;line-height:1;}
-.sl-btn:hover{border-color:#F5A623;transform:scale(1.1);}
-.sl-btn.sl-active{border-color:#F5A623;background:#FFF8EC;}
-.sl-btn.sl-full{opacity:0.4;cursor:not-allowed;}
+.sl-btn{display:inline-block;margin-top:10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:11px;letter-spacing:2px;text-transform:uppercase;padding:7px 14px;border-radius:2px;border:1.5px solid #C8102E;background:transparent;color:#C8102E;cursor:pointer;transition:all 0.15s;white-space:nowrap;}
+.sl-btn:hover{background:#C8102E;color:#fff;}
+.sl-btn.sl-active{background:#C8102E;color:#fff;border-color:#C8102E;}
+.sl-btn.sl-full{opacity:0.4;cursor:not-allowed;border-color:#999;color:#999;}
 .sl-nav-btn{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;letter-spacing:3px;text-transform:uppercase;padding:7px 12px;border-radius:2px;cursor:pointer;border:1.5px solid currentColor;background:transparent;transition:opacity 0.15s;white-space:nowrap;position:relative;}
 .sl-nav-btn:hover{opacity:0.75;}
 .sl-badge{position:absolute;top:-6px;right:-6px;background:#F5A623;color:#fff;border-radius:50%;width:16px;height:16px;font-size:9px;font-weight:900;display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;}
@@ -736,7 +736,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
     <div class="anav-logo">FULL<span id="a-span">CHAT</span></div>
     <div class="anav-right">
       <button class="back-btn" id="back-btn" onclick="goBack()">← BACK</button>
-      <button class="sl-nav-btn" id="sl-nav-btn" onclick="openShortlist()" style="display:none">★ LIST<span class="sl-badge" id="sl-badge" style="display:none">0</span></button>
+      <button class="sl-nav-btn" id="sl-nav-btn" onclick="openShortlist()" style="display:none">MY SHORTLIST<span class="sl-badge" id="sl-badge" style="display:none">0</span></button>
       <div class="share-wrap" id="share-wrap">
         <button class="share-btn" id="share-btn" onclick="toggleSharePanel()">⬆ SHARE</button>
         <div class="share-panel" id="share-panel">
@@ -1713,7 +1713,7 @@ function slBtn(car) {
   var active = isShortlisted(car.make, car.model, car.yearFrom);
   var full = !active && _shortlist.length >= MAX_SHORTLIST;
   var cls = 'sl-btn' + (active ? ' sl-active' : '') + (full ? ' sl-full' : '');
-  var title = active ? 'Remove from shortlist' : full ? 'Shortlist full (max 4)' : 'Add to shortlist';
+  var label = active ? '✕ Remove' : full ? 'Shortlist Full' : '+ Add to Shortlist';
   var key = [car.make, car.model, car.yearFrom || ''].join('|');
   _slCarMap[key] = {
     make: car.make, model: car.model,
@@ -1725,7 +1725,9 @@ function slBtn(car) {
       car.stat3_val ? {val: car.stat3_val, lbl: car.stat3_label||''} : null
     ].filter(Boolean)
   };
-  return '<button class="' + cls + '" title="' + title + '" onclick="toggleShortlistByKey(' + JSON.stringify(key) + ')">' + (active ? '★' : '☆') + '</button>';
+  // Use single-quote wrapping to avoid JSON double-quote breaking HTML attrs
+  var safeKey = key.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+  return '<button class="' + cls + '" onclick="toggleShortlistByKey(\'' + safeKey + '\')">' + label + '</button>';
 }
 
 function renderSingleCar(a,c){
@@ -1745,7 +1747,6 @@ function renderSingleCar(a,c){
           <div class="car-model">${esc(car.model)}</div>
           ${genLabel(car)}
         </div>
-        <div class="car-badge-pill" style="background:${badge.bg};color:${badge.c}">${esc(car.badge)}</div>
         ${slBtn(car)}
       </div>
       <div class="gallery-wrap">
@@ -1830,7 +1831,6 @@ function renderVS(a, c) {
       + '<div class="car-model">' + esc(car.model) + '</div>'
       + genLabel(car)
       + slBtn(car)
-      + '<div class="car-badge-pill" style="background:' + badge.bg + ';color:' + badge.c + '">' + esc(car.badge) + '</div>'
       + '<div class="gallery-wrap"><div class="gallery-box" id="gbox-' + idx + '"><div class="gallery-loading" id="gload-' + idx + '">Loading photos...</div></div><div class="gallery-credit" id="gcredit-' + idx + '">Photos via Pexels</div></div>'
       + (ytVideos[idx] ? renderYouTube(idx) : '')
       + '<div class="car-stats-9">'
@@ -1902,7 +1902,6 @@ function renderComparison(a,c){
             <div class="car-model">${esc(car.model)}</div>
             ${genLabel(car)}
           </div>
-          <div class="car-badge-pill" style="background:${badge.bg};color:${badge.c}">${esc(car.badge)}</div>
           ${slBtn(car)}
         </div>
         <div class="gallery-wrap">
