@@ -960,19 +960,19 @@ function saveShortlist() {
 }
 function updateSlNav() {
   var n = _shortlist.length;
-  // Article nav button
+  // Article nav button (keep in sync)
   var btn = document.getElementById('sl-nav-btn');
   var badge = document.getElementById('sl-badge');
   if (btn) btn.style.display = n > 0 ? 'inline-block' : 'none';
   if (badge) { badge.textContent = n; badge.style.display = n > 0 ? 'flex' : 'none'; }
-  // Global floating button — all screens except shortlist/login/generating
+  // Global floating button — always visible except on shortlist/login/generating screens
   var gb = document.getElementById('sl-global-btn');
   var gc = document.getElementById('sl-g-count');
   if (gb) {
     var activeId = (document.querySelector('.screen.active') || {}).id || '';
-    var hide = n === 0 || activeId === 's-shortlist' || activeId === 's-login' || activeId === 's-generating';
-    gb.style.display = hide ? 'none' : 'flex';
-    if (gc) gc.textContent = n;
+    var hidden = activeId === 's-shortlist' || activeId === 's-login' || activeId === 's-generating';
+    gb.style.display = hidden ? 'none' : 'flex';
+    if (gc) { gc.textContent = n; gc.style.display = n > 0 ? 'inline-block' : 'none'; }
   }
 }
 function isShortlisted(make, model, yearFrom) {
