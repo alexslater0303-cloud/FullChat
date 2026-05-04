@@ -407,6 +407,46 @@ module.exports = async (req, res) => {
     }
   }
 
+  // ── ARTICLE REWRITE ──────────────────────────────────────────────────────────
+  if (mode === 'rewrite') {
+    const rewriteCost = 20;
+    if (tester.tokens_remaining < rewriteCost) return res.status(402).json({ error: 'Insufficient tokens' });
+    const { article: existingArticle, feedback } = req.body;
+    if (!existingArticle || !feedback) return res.status(400).json({ error: 'article and feedback required' });
+    try {
+      const articleJson = JSON.stringify(existingArticle, null, 2);
+      const r = await anthropic.messages.create({
+        model: 'claude-sonnet-4-20250514', max_tokens: 8000,
+        system: p.systemPrompt,
+        messages: [{
+          role: 'user',
+          content: `The user wants to modify this article based on their feedback.
+
+CURRENT ARTICLE JSON:
+${articleJson}
+
+USER FEEDBACK: "${feedback}"
+
+Return the COMPLETE modified article as valid JSON with EXACTLY the same structure and all the same fields. Apply the user's feedback thoughtfully — only change what they've asked for. Keep all unchanged fields identical. Return ONLY the JSON, no explanation.`
+        }]
+      });
+      const raw = r.content?.find(b=>b.type==='text')?.text || '';
+      // Parse JSON from response
+      const match = raw.match(/\{[\s\S]*\}/);
+      if (!match) return res.status(500).json({ error: 'Rewrite failed to return valid JSON' });
+      let rewritten;
+      try { rewritten = JSON.parse(match[0]); } catch { return res.status(500).json({ error: 'Rewrite JSON parse failed' }); }
+      await supabase.from('testers').update({
+        tokens_remaining: tester.tokens_remaining - rewriteCost,
+        tokens_used: (tester.tokens_used||0) + rewriteCost
+      }).eq('id', tester.id);
+      return res.status(200).json({ article: rewritten, tokens_remaining: tester.tokens_remaining - rewriteCost });
+    } catch(err) {
+      console.error('Rewrite error:', err.message);
+      return res.status(500).json({ error: err.message });
+    }
+  }
+
   // ── ARTICLE CACHE CHECK ──────────────────────────────────────────────────────
   if (mode === 'article') {
     try {

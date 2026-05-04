@@ -497,6 +497,10 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 .fu-input:focus{box-shadow:0 0 0 2px var(--ac,#C8102E);}
 .fu-send{color:#F5F0E8;border:none;border-radius:4px;padding:14px 20px;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:18px;cursor:pointer;flex-shrink:0;transition:opacity 0.2s;}
 .fu-send:disabled{opacity:0.4;cursor:not-allowed;}
+.fu-rewrite{color:#F5F0E8;border:none;border-radius:4px;padding:14px 16px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;flex-shrink:0;transition:opacity 0.2s;white-space:nowrap;opacity:0.7;}
+.fu-rewrite:hover{opacity:1;}
+.fu-rewrite:disabled{opacity:0.25;cursor:not-allowed;}
+.rewrite-banner{background:rgba(255,255,255,0.06);border-left:3px solid var(--ac,#C8102E);padding:10px 14px;border-radius:2px;font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:1px;color:#ccc;margin:8px 0;}
 
 @keyframes fadeDown{from{opacity:0;transform:translateY(-14px)}to{opacity:1;transform:translateY(0)}}
 @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
@@ -818,8 +822,11 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
     <div class="convo" id="convo"></div>
     <div class="thinking" id="thinking" style="display:none">Thinking...</div>
     <div class="fu-inputwrap">
-      <textarea class="fu-input" id="fu-input" rows="2" placeholder="Ask anything about these cars..."></textarea>
-      <button class="fu-send" id="fu-send" onclick="askFollowUp()">→</button>
+      <textarea class="fu-input" id="fu-input" rows="2" placeholder="Ask anything, or type feedback to rewrite the article..."></textarea>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <button class="fu-send" id="fu-send" onclick="askFollowUp()">→</button>
+        <button class="fu-rewrite" id="fu-rewrite" onclick="rewriteArticle()" title="Rewrite article with your feedback">✎ REWRITE</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1445,7 +1452,7 @@ function useFuChip(el,q){document.getElementById('fu-input').value=q;el.style.di
 function applyColor(c) {
   document.documentElement.style.setProperty('--ac',c);
   ['p-span','g-span','a-span'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.color=c;});
-  ['gobtn','a-newbtn','fu-send'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.background=c;});
+  ['gobtn','a-newbtn','fu-send','fu-rewrite'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.background=c;});
   ['a-vlbl','fu-title'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.color=c;});
   const bgh=document.getElementById('a-bghdr');if(bgh)bgh.style.background=c;
   const nb=document.getElementById('a-nbtn');if(nb){nb.style.color=c;nb.style.border=`1.5px solid ${c}`;}
@@ -2554,6 +2561,42 @@ function lbKey(e) {
   if (e.key === 'ArrowRight') lbNav(1);
 }
 // ── FOLLOW-UP ─────────────────────────────────────────────────────────────────
+async function rewriteArticle(){
+  const input=document.getElementById('fu-input');
+  const feedback=input.value.trim();
+  if(!feedback||fuBusy||!finalArticle)return;
+  fuBusy=true; input.value='';
+  const rwBtn=document.getElementById('fu-rewrite');
+  const sendBtn=document.getElementById('fu-send');
+  if(rwBtn)rwBtn.disabled=true;
+  if(sendBtn)sendBtn.disabled=true;
+  const p=P(),c=C();
+  const thread=document.getElementById('convo');
+  thread.insertAdjacentHTML('beforeend',`<div class="msg-u"><div class="msg-ubub" style="background:${c}">${esc(feedback)}</div></div>`);
+  thread.insertAdjacentHTML('beforeend',`<div class="msg-a" id="rewrite-status"><div class="msg-albl" style="color:${c}">${p.name.split(' ')[1]}</div><div class="msg-abub rewrite-banner">✎ Rewriting article...</div></div>`);
+  thread.scrollIntoView({behavior:'smooth',block:'end'});
+  try{
+    const res=await fetch('/api/generate',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({mode:'rewrite',persona,inviteCode,depth,article:finalArticle,feedback})});
+    const data=await res.json();
+    if(data.error){throw new Error(data.error);}
+    finalArticle=data.article;
+    renderArticle(finalArticle,articleIntent);
+    const statusEl=document.getElementById('rewrite-status');
+    if(statusEl)statusEl.querySelector('.rewrite-banner').textContent='✓ Article rewritten — scroll up to read';
+    convo.push({role:'user',content:'[Rewrite request] '+feedback},{role:'assistant',content:'Article rewritten based on your feedback.'});
+    if(currentHistoryId){
+      fetch('/api/history',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:currentHistoryId,convo})}).catch(()=>{});
+    }
+    if(data.tokens_remaining!==undefined) updateTokenDisplay(data.tokens_remaining);
+  }catch(e){
+    const statusEl=document.getElementById('rewrite-status');
+    if(statusEl)statusEl.querySelector('.rewrite-banner').textContent='Rewrite failed — try again.';
+  }
+  fuBusy=false;
+  if(rwBtn)rwBtn.disabled=false;
+  if(sendBtn)sendBtn.disabled=false;
+}
 async function askFollowUp(){
   const input=document.getElementById('fu-input');
   const q=input.value.trim();
