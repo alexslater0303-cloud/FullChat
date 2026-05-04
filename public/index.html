@@ -600,6 +600,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 .sl-card-stat-val{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:14px;line-height:1;}
 .sl-card-stat-lbl{font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#AAA;}
 .sl-card-remove{flex-shrink:0;width:28px;height:28px;border-radius:50%;border:1.5px solid #E0DBD3;background:transparent;cursor:pointer;font-size:14px;color:#AAA;transition:all 0.15s;display:flex;align-items:center;justify-content:center;}
+.sl-card-actions{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;}
+.sl-deep-btn{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;letter-spacing:2px;text-transform:uppercase;border:1.5px solid currentColor;background:transparent;border-radius:3px;padding:4px 8px;cursor:pointer;white-space:nowrap;transition:all 0.15s;opacity:0.75;}
+.sl-deep-btn:hover{opacity:1;}
 .sl-card-remove:hover{border-color:#C8102E;color:#C8102E;}
 .sl-actions{margin-top:20px;display:flex;flex-direction:column;gap:10px;}
 .sl-vs-btn{width:100%;padding:16px;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:15px;letter-spacing:4px;text-transform:uppercase;border:none;border-radius:4px;background:#1A1A1A;color:#F5F0E8;cursor:pointer;transition:opacity 0.15s;}
@@ -1087,6 +1090,13 @@ function openShortlist() {
   go('s-shortlist');
 }
 function closeShortlist() { go(_slPrevScreen || 's-article'); }
+function slDeepDive(i) {
+  var car = _shortlist[i];
+  if (!car) return;
+  var prompt = car.make + ' ' + car.model + (car.generation ? ' ' + car.generation : '');
+  go('s-splash');
+  startPipeline(prompt);
+}
 function clearShortlist() { _shortlist = []; saveShortlist(); renderShortlistScreen(); }
 function removeFromShortlist(idx) {
   _shortlist.splice(idx, 1);
@@ -1131,7 +1141,10 @@ function renderShortlistScreen() {
       + (car.generation ? '<div class="sl-card-gen">' + esc(car.generation) + (car.yearFrom ? ' · ' + car.yearFrom + (car.yearTo ? '–' + car.yearTo : '') : '') + '</div>' : '')
       + '<div class="sl-card-stats">' + statsHtml + '</div>'
       + '</div>'
+      + '<div class="sl-card-actions">'
+      + '<button class="sl-deep-btn" style="color:' + C() + '" onclick="slDeepDive(' + i + ')">DEEP DIVE →</button>'
       + '<button class="sl-card-remove" onclick="removeFromShortlist(' + i + ')" title="Remove">✕</button>'
+      + '</div>'
       + '</div>';
   }).join('');
   var hint = _shortlist.length < 2 ? '<p class="sl-hint" style="margin-top:8px">Add at least 2 cars to generate a VS battle</p>' : '';
@@ -2748,57 +2761,4 @@ function renderAdminDashboard(d) {
             <div class="adm-tester-code">${esc(t.invite_code)}</div>
           </div>
           <div class="adm-tester-stat"><div class="adm-tester-stat-val">${t.generationCount}</div><div class="adm-tester-stat-lbl">Articles</div></div>
-          <div class="adm-tester-stat"><div class="adm-tester-stat-val">${t.tokens_used||0}</div><div class="adm-tester-stat-lbl">Used</div></div>
-          <div class="adm-tester-stat"><div class="adm-tester-stat-val" style="color:${(t.tokens_remaining||0)<5?'#C8102E':'#1B6B3A'}">${t.tokens_remaining||0}</div><div class="adm-tester-stat-lbl">Left</div></div>
-        </div>`).join('')}
-    </div>`;
-
-
-
-  // Error log (feedback with rating='error')
-  const errors = d.feedback.filter(f => f.rating === 'error');
-  const cleanFeedback = d.feedback.filter(f => f.rating !== 'error');
-
-  const errLogHtml = errors.length ? `
-    <div class="adm-section">
-      <div class="adm-section-title" style="color:#C8102E">⚠ Error Log (${errors.length})</div>
-      ${errors.map(f => `
-        <div class="adm-fb-row" style="border-color:#F5C6C6">
-          <div class="adm-fb-top">
-            <span class="adm-fb-rating">⚠️</span>
-            <span class="adm-fb-meta">${esc(f.invite_code||'?')} · ${new Date(f.created_at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</span>
-          </div>
-          <div class="adm-fb-headline" style="color:#C8102E">${esc(f.prompt||'No prompt')}</div>
-          <div class="adm-fb-comment">${esc(f.comment||'')}</div>
-        </div>`).join('')}
-    </div>` : '';
-
-  const feedbackFiltered = cleanFeedback.length ? `
-    <div class="adm-section">
-      <div class="adm-section-title">Recent Feedback</div>
-      ${cleanFeedback.map(f => `
-        <div class="adm-fb-row">
-          <div class="adm-fb-top">
-            <span class="adm-fb-rating">${f.rating==='up'?'👍':'👎'}</span>
-            <span class="adm-fb-persona" style="color:${PERSONA_COLORS[f.persona]||'#AAA'}">${f.persona||'—'}</span>
-            <span class="adm-fb-meta">${new Date(f.created_at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</span>
-          </div>
-          ${f.headline?`<div class="adm-fb-headline">${esc(f.headline)}</div>`:''}
-          ${f.comment?`<div class="adm-fb-comment">"${esc(f.comment)}"</div>`:''}
-          <div class="adm-fb-prompt">${esc(f.prompt||'')}</div>
-        </div>`).join('')}
-    </div>` : '<div class="adm-section"><div class="adm-section-title">Recent Feedback</div><div class="adm-loading" style="padding:20px 0">No feedback yet</div></div>';
-
-  document.getElementById('adm-body').innerHTML = errLogHtml + statsHtml + personaHtml + testersHtml + feedbackFiltered;
-}
-</script>
-<script src="/pdf.js"></script>
-<div id="lightbox" class="lightbox" onclick="lbBgClick(event)">
-  <button class="lb-close" onclick="closeLightbox()">✕</button>
-  <button class="lb-nav lb-prev" onclick="lbNav(-1);event.stopPropagation()">‹</button>
-  <img class="lb-img" id="lb-img" src="" alt="Full size photo"/>
-  <button class="lb-nav lb-next" onclick="lbNav(1);event.stopPropagation()">›</button>
-  <div class="lb-counter" id="lb-counter"></div>
-</div>
-</body>
-</html>
+          <div class="adm-tester-stat"><div class="adm-tester-stat-val">${t.tokens_used||0}</div><div class="adm-tester-stat-lbl">Used</div></div
