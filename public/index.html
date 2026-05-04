@@ -1029,7 +1029,7 @@ function renderSlPersonaPicker() {
     var icon = PSVG[key] || '';
     return '<div class="sl-persona-chip' + (isActive ? ' sl-persona-active' : '') + '" '
       + 'style="--chip-color:' + p.color + (isActive ? ';border-color:' + p.color : '') + '" '
-      + 'onclick="setSlPersona(\"' + key + '\")">'
+      + 'data-pkey="' + key + '" onclick="setSlPersona(this.dataset.pkey)">'
       + icon
       + '<span class="sl-persona-chip-lbl">' + p.name.split(' ').slice(1).join(' ') + '</span>'
       + '</div>';
