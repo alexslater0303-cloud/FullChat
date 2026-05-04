@@ -506,6 +506,11 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 .rw-progress-bar{height:100%;width:0%;background:var(--ac,#C8102E);border-radius:1px;transition:width 0.6s cubic-bezier(0.4,0,0.2,1);}
 .rw-done .rw-progress-bar{background:#1B6B3A;}
 .rw-done .rw-status-label{color:#7fcba0;}
+.rw-status-label{display:flex;align-items:center;gap:4px;}
+.rw-tacho{flex-shrink:0;}
+.rw-tacho-needle{transform-origin:40px 38px;animation:rw-needle 1.6s cubic-bezier(0.45,0.05,0.55,0.95) infinite;}
+.rw-tacho-needle.rw-done-needle{animation:none;transform:rotate(42deg);}
+@keyframes rw-needle{0%{transform:rotate(-38deg);}18%{transform:rotate(25deg);}30%{transform:rotate(8deg);}48%{transform:rotate(44deg);}62%{transform:rotate(28deg);}76%{transform:rotate(52deg);}88%{transform:rotate(14deg);}100%{transform:rotate(-38deg);}}
 
 @keyframes fadeDown{from{opacity:0;transform:translateY(-14px)}to{opacity:1;transform:translateY(0)}}
 @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
@@ -2578,7 +2583,7 @@ async function rewriteArticle(){
   const p=P(),c=C();
   const thread=document.getElementById('convo');
   thread.insertAdjacentHTML('beforeend',`<div class="msg-u"><div class="msg-ubub" style="background:${c}">${esc(feedback)}</div></div>`);
-  thread.insertAdjacentHTML('beforeend',`<div class="msg-a" id="rewrite-status"><div class="msg-albl" style="color:${c}">${p.name.split(' ')[1]}</div><div class="msg-abub rewrite-banner"><div class="rw-status-label">✎ Analysing your feedback...</div><div class="rw-progress-track"><div class="rw-progress-bar" id="rw-progress"></div></div></div></div>`);
+  thread.insertAdjacentHTML('beforeend',`<div class="msg-a" id="rewrite-status"><div class="msg-albl" style="color:${c}">${p.name.split(' ')[1]}</div><div class="msg-abub rewrite-banner"><div class="rw-status-label"><svg class=\"rw-tacho\" width=\"52\" height=\"32\" viewBox=\"0 0 80 50\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M10 42 A30 30 0 0 1 70 42\" fill=\"none\" stroke=\"rgba(255,255,255,0.08)\" stroke-width=\"5\" stroke-linecap=\"round\"/><path d=\"M10 42 A30 30 0 0 1 40 12\" fill=\"none\" stroke=\"#1B6B3A\" stroke-width=\"5\" stroke-linecap=\"round\"/><path d=\"M40 12 A30 30 0 0 1 61 19\" fill=\"none\" stroke=\"#b8922a\" stroke-width=\"5\" stroke-linecap=\"round\"/><path d=\"M61 19 A30 30 0 0 1 70 42\" fill=\"none\" stroke=\"#C8102E\" stroke-width=\"5\" stroke-linecap=\"round\"/><line x1=\"10\" y1=\"42\" x2=\"14\" y2=\"42\" stroke=\"rgba(255,255,255,0.3)\" stroke-width=\"1.5\"/><line x1=\"19\" y1=\"19\" x2=\"22\" y2=\"22\" stroke=\"rgba(255,255,255,0.3)\" stroke-width=\"1.5\"/><line x1=\"40\" y1=\"12\" x2=\"40\" y2=\"16\" stroke=\"rgba(255,255,255,0.3)\" stroke-width=\"1.5\"/><line x1=\"61\" y1=\"19\" x2=\"58\" y2=\"22\" stroke=\"rgba(255,255,255,0.3)\" stroke-width=\"1.5\"/><line x1=\"70\" y1=\"42\" x2=\"66\" y2=\"42\" stroke=\"rgba(255,255,255,0.3)\" stroke-width=\"1.5\"/><line class=\"rw-tacho-needle\" x1=\"40\" y1=\"38\" x2=\"40\" y2=\"15\" stroke=\"white\" stroke-width=\"2.5\" stroke-linecap=\"round\"/><circle cx=\"40\" cy=\"38\" r=\"4\" fill=\"#222\"/><circle cx=\"40\" cy=\"38\" r=\"2\" fill=\"rgba(255,255,255,0.7)\"/><text x=\"40\" y=\"48\" text-anchor=\"middle\" font-size=\"5.5\" fill=\"rgba(255,255,255,0.3)\" font-family=\"Barlow Condensed,sans-serif\" letter-spacing=\"1\">RPM</text></svg><span class="rw-label-text">Analysing your feedback...</span></div><div class="rw-progress-track"><div class="rw-progress-bar" id="rw-progress"></div></div></div></div>`);
   thread.scrollTop=thread.scrollHeight;
 
   // Animated progress + cycling status messages
@@ -2596,7 +2601,7 @@ async function rewriteArticle(){
     if(!bar||!lbl)return;
     if(stageIdx<stages.length){
       bar.style.width=stages[stageIdx].pct+'%';
-      lbl.textContent=stages[stageIdx].label;
+      const sp=lbl.querySelector('.rw-label-text');if(sp)sp.textContent=stages[stageIdx].label;else lbl.textContent=stages[stageIdx].label;
       stageIdx++;
     }
   };
@@ -2614,7 +2619,7 @@ async function rewriteArticle(){
     const lbl=document.querySelector('#rewrite-status .rw-status-label');
     const banner=document.querySelector('#rewrite-status .rewrite-banner');
     if(bar)bar.style.width='100%';
-    if(lbl)lbl.textContent='✓ Article rewritten';
+    if(lbl){const sp=lbl.querySelector('.rw-label-text');if(sp)sp.textContent='Article rewritten';const needle=lbl.querySelector('.rw-tacho-needle');if(needle)needle.classList.add('rw-done-needle');}
     if(banner)banner.classList.add('rw-done');
     await new Promise(r=>setTimeout(r,400));
     finalArticle=data.article;
@@ -2622,7 +2627,7 @@ async function rewriteArticle(){
     const statusEl=document.getElementById('rewrite-status');
     if(statusEl){
       const b=statusEl.querySelector('.rewrite-banner');
-      if(b)b.innerHTML='<div class="rw-status-label">✓ Article rewritten — scroll up to read</div><div class="rw-progress-track"><div class="rw-progress-bar" style="width:100%"></div></div>';
+      if(b)b.innerHTML='<div class="rw-status-label"><svg class=\"rw-tacho\" width=\"52\" height=\"32\" viewBox=\"0 0 80 50\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M10 42 A30 30 0 0 1 70 42\" fill=\"none\" stroke=\"rgba(255,255,255,0.08)\" stroke-width=\"5\" stroke-linecap=\"round\"/><path d=\"M10 42 A30 30 0 0 1 40 12\" fill=\"none\" stroke=\"#1B6B3A\" stroke-width=\"5\" stroke-linecap=\"round\"/><path d=\"M40 12 A30 30 0 0 1 61 19\" fill=\"none\" stroke=\"#b8922a\" stroke-width=\"5\" stroke-linecap=\"round\"/><path d=\"M61 19 A30 30 0 0 1 70 42\" fill=\"none\" stroke=\"#C8102E\" stroke-width=\"5\" stroke-linecap=\"round\"/><line x1=\"10\" y1=\"42\" x2=\"14\" y2=\"42\" stroke=\"rgba(255,255,255,0.3)\" stroke-width=\"1.5\"/><line x1=\"19\" y1=\"19\" x2=\"22\" y2=\"22\" stroke=\"rgba(255,255,255,0.3)\" stroke-width=\"1.5\"/><line x1=\"40\" y1=\"12\" x2=\"40\" y2=\"16\" stroke=\"rgba(255,255,255,0.3)\" stroke-width=\"1.5\"/><line x1=\"61\" y1=\"19\" x2=\"58\" y2=\"22\" stroke=\"rgba(255,255,255,0.3)\" stroke-width=\"1.5\"/><line x1=\"70\" y1=\"42\" x2=\"66\" y2=\"42\" stroke=\"rgba(255,255,255,0.3)\" stroke-width=\"1.5\"/><line class=\"rw-tacho-needle rw-done-needle\" x1=\"40\" y1=\"38\" x2=\"40\" y2=\"15\" stroke=\"#7fcba0\" stroke-width=\"2.5\" stroke-linecap=\"round\"/><circle cx=\"40\" cy=\"38\" r=\"4\" fill=\"#222\"/><circle cx=\"40\" cy=\"38\" r=\"2\" fill=\"rgba(255,255,255,0.7)\"/><text x=\"40\" y=\"48\" text-anchor=\"middle\" font-size=\"5.5\" fill=\"rgba(255,255,255,0.3)\" font-family=\"Barlow Condensed,sans-serif\" letter-spacing=\"1\">RPM</text></svg><span class=\"rw-label-text\">Article rewritten — scroll up to read</span></div><div class="rw-progress-track"><div class="rw-progress-bar" style="width:100%"></div></div>';
       if(b)b.classList.add('rw-done');
     }
     convo.push({role:'user',content:'[Rewrite request] '+feedback},{role:'assistant',content:'Article rewritten based on your feedback.'});
@@ -2741,59 +2746,4 @@ function renderAdminDashboard(d) {
           <div>
             <div class="adm-tester-name">${esc(t.name)}</div>
             <div class="adm-tester-code">${esc(t.invite_code)}</div>
-          </div>
-          <div class="adm-tester-stat"><div class="adm-tester-stat-val">${t.generationCount}</div><div class="adm-tester-stat-lbl">Articles</div></div>
-          <div class="adm-tester-stat"><div class="adm-tester-stat-val">${t.tokens_used||0}</div><div class="adm-tester-stat-lbl">Used</div></div>
-          <div class="adm-tester-stat"><div class="adm-tester-stat-val" style="color:${(t.tokens_remaining||0)<5?'#C8102E':'#1B6B3A'}">${t.tokens_remaining||0}</div><div class="adm-tester-stat-lbl">Left</div></div>
-        </div>`).join('')}
-    </div>`;
-
-
-
-  // Error log (feedback with rating='error')
-  const errors = d.feedback.filter(f => f.rating === 'error');
-  const cleanFeedback = d.feedback.filter(f => f.rating !== 'error');
-
-  const errLogHtml = errors.length ? `
-    <div class="adm-section">
-      <div class="adm-section-title" style="color:#C8102E">⚠ Error Log (${errors.length})</div>
-      ${errors.map(f => `
-        <div class="adm-fb-row" style="border-color:#F5C6C6">
-          <div class="adm-fb-top">
-            <span class="adm-fb-rating">⚠️</span>
-            <span class="adm-fb-meta">${esc(f.invite_code||'?')} · ${new Date(f.created_at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</span>
-          </div>
-          <div class="adm-fb-headline" style="color:#C8102E">${esc(f.prompt||'No prompt')}</div>
-          <div class="adm-fb-comment">${esc(f.comment||'')}</div>
-        </div>`).join('')}
-    </div>` : '';
-
-  const feedbackFiltered = cleanFeedback.length ? `
-    <div class="adm-section">
-      <div class="adm-section-title">Recent Feedback</div>
-      ${cleanFeedback.map(f => `
-        <div class="adm-fb-row">
-          <div class="adm-fb-top">
-            <span class="adm-fb-rating">${f.rating==='up'?'👍':'👎'}</span>
-            <span class="adm-fb-persona" style="color:${PERSONA_COLORS[f.persona]||'#AAA'}">${f.persona||'—'}</span>
-            <span class="adm-fb-meta">${new Date(f.created_at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</span>
-          </div>
-          ${f.headline?`<div class="adm-fb-headline">${esc(f.headline)}</div>`:''}
-          ${f.comment?`<div class="adm-fb-comment">"${esc(f.comment)}"</div>`:''}
-          <div class="adm-fb-prompt">${esc(f.prompt||'')}</div>
-        </div>`).join('')}
-    </div>` : '<div class="adm-section"><div class="adm-section-title">Recent Feedback</div><div class="adm-loading" style="padding:20px 0">No feedback yet</div></div>';
-
-  document.getElementById('adm-body').innerHTML = errLogHtml + statsHtml + personaHtml + testersHtml + feedbackFiltered;
-}
-</script>
-<script src="/pdf.js"></script>
-<div id="lightbox" class="lightbox" onclick="lbBgClick(event)">
-  <button class="lb-close" onclick="closeLightbox()">✕</button>
-  <button class="lb-nav lb-prev" onclick="lbNav(-1);event.stopPropagation()">‹</button>
-  <img class="lb-img" id="lb-img" src="" alt="Full size photo"/>
-  <button class="lb-nav lb-next" onclick="lbNav(1);event.stopPropagation()">›</button>
-  <div class="lb-counter" id="lb-counter"></div>
-</div>
-</body>
-</html>
+          </
