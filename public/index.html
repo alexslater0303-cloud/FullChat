@@ -603,6 +603,13 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 .sl-card-actions{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;}
 .sl-deep-btn{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;letter-spacing:2px;text-transform:uppercase;border:1.5px solid currentColor;background:transparent;border-radius:3px;padding:4px 8px;cursor:pointer;white-space:nowrap;transition:all 0.15s;opacity:0.75;}
 .sl-deep-btn:hover{opacity:1;}
+.sl-dive-modal{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:9000;display:flex;align-items:center;justify-content:center;padding:24px;}
+.sl-dive-modal-inner{background:#F5F0E8;border-radius:6px;padding:24px;width:100%;max-width:420px;box-shadow:0 8px 40px rgba(0,0,0,0.25);}
+.sl-dive-modal-car{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:22px;margin-bottom:4px;}
+.sl-dive-modal-sub{font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#888;margin-bottom:16px;}
+.sl-dive-modal-ttl{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#888;margin-bottom:10px;}
+.sl-dive-cancel{width:100%;margin-top:12px;background:transparent;border:1.5px solid #D8D3CB;border-radius:4px;padding:10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#888;cursor:pointer;transition:all 0.15s;}
+.sl-dive-cancel:hover{border-color:#1A1A1A;color:#1A1A1A;}
 .sl-card-remove:hover{border-color:#C8102E;color:#C8102E;}
 .sl-actions{margin-top:20px;display:flex;flex-direction:column;gap:10px;}
 .sl-vs-btn{width:100%;padding:16px;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:15px;letter-spacing:4px;text-transform:uppercase;border:none;border-radius:4px;background:#1A1A1A;color:#F5F0E8;cursor:pointer;transition:opacity 0.15s;}
@@ -1090,12 +1097,31 @@ function openShortlist() {
   go('s-shortlist');
 }
 function closeShortlist() { go(_slPrevScreen || 's-article'); }
+var _slDiveIdx = null;
 function slDeepDive(i) {
-  var car = _shortlist[i];
-  if (!car) return;
-  var prompt = car.make + ' ' + car.model + (car.generation ? ' ' + car.generation : '');
-  go('s-splash');
-  startPipeline(prompt);
+  var car = _shortlist[i]; if (!car) return;
+  _slDiveIdx = i;
+  var modal = document.getElementById('sl-dive-modal');
+  var carLbl = document.getElementById('sl-dive-modal-car');
+  var row = document.getElementById('sl-dive-persona-row');
+  if (carLbl) carLbl.textContent = car.make + ' ' + car.model;
+  if (row) row.innerHTML = Object.keys(PERSONAS).map(function(key) {
+    var p = PERSONAS[key], isActive = key === persona, icon = PSVG[key] || '';
+    return '<div class="sl-persona-chip' + (isActive?' sl-persona-active':'') + '" '
+      + 'style="--chip-color:' + p.color + (isActive?';border-color:'+p.color:'') + '" '
+      + 'data-pkey="' + key + '" onclick="confirmDeepDive(this.dataset.pkey)">'
+      + icon + '<span class="sl-persona-chip-lbl">' + p.name.split(' ').slice(1).join(' ') + '</span></div>';
+  }).join('');
+  if (modal) modal.style.display = 'flex';
+}
+function closeDiveModal() {
+  var m = document.getElementById('sl-dive-modal'); if (m) m.style.display = 'none'; _slDiveIdx = null;
+}
+function confirmDeepDive(personaKey) {
+  if (_slDiveIdx === null) return;
+  var car = _shortlist[_slDiveIdx]; if (!car) return;
+  closeDiveModal(); selectPersona(personaKey);
+  startPipeline(car.make + ' ' + car.model + (car.generation ? ' ' + car.generation : ''));
 }
 function clearShortlist() { _shortlist = []; saveShortlist(); renderShortlistScreen(); }
 function removeFromShortlist(idx) {
@@ -2761,4 +2787,66 @@ function renderAdminDashboard(d) {
             <div class="adm-tester-code">${esc(t.invite_code)}</div>
           </div>
           <div class="adm-tester-stat"><div class="adm-tester-stat-val">${t.generationCount}</div><div class="adm-tester-stat-lbl">Articles</div></div>
-          <div class="adm-tester-stat"><div class="adm-tester-stat-val">${t.tokens_used||0}</div><div class="adm-tester-stat-lbl">Used</div></div
+          <div class="adm-tester-stat"><div class="adm-tester-stat-val">${t.tokens_used||0}</div><div class="adm-tester-stat-lbl">Used</div></div>
+          <div class="adm-tester-stat"><div class="adm-tester-stat-val" style="color:${(t.tokens_remaining||0)<5?'#C8102E':'#1B6B3A'}">${t.tokens_remaining||0}</div><div class="adm-tester-stat-lbl">Left</div></div>
+        </div>`).join('')}
+    </div>`;
+
+
+
+  // Error log (feedback with rating='error')
+  const errors = d.feedback.filter(f => f.rating === 'error');
+  const cleanFeedback = d.feedback.filter(f => f.rating !== 'error');
+
+  const errLogHtml = errors.length ? `
+    <div class="adm-section">
+      <div class="adm-section-title" style="color:#C8102E">⚠ Error Log (${errors.length})</div>
+      ${errors.map(f => `
+        <div class="adm-fb-row" style="border-color:#F5C6C6">
+          <div class="adm-fb-top">
+            <span class="adm-fb-rating">⚠️</span>
+            <span class="adm-fb-meta">${esc(f.invite_code||'?')} · ${new Date(f.created_at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</span>
+          </div>
+          <div class="adm-fb-headline" style="color:#C8102E">${esc(f.prompt||'No prompt')}</div>
+          <div class="adm-fb-comment">${esc(f.comment||'')}</div>
+        </div>`).join('')}
+    </div>` : '';
+
+  const feedbackFiltered = cleanFeedback.length ? `
+    <div class="adm-section">
+      <div class="adm-section-title">Recent Feedback</div>
+      ${cleanFeedback.map(f => `
+        <div class="adm-fb-row">
+          <div class="adm-fb-top">
+            <span class="adm-fb-rating">${f.rating==='up'?'👍':'👎'}</span>
+            <span class="adm-fb-persona" style="color:${PERSONA_COLORS[f.persona]||'#AAA'}">${f.persona||'—'}</span>
+            <span class="adm-fb-meta">${new Date(f.created_at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</span>
+          </div>
+          ${f.headline?`<div class="adm-fb-headline">${esc(f.headline)}</div>`:''}
+          ${f.comment?`<div class="adm-fb-comment">"${esc(f.comment)}"</div>`:''}
+          <div class="adm-fb-prompt">${esc(f.prompt||'')}</div>
+        </div>`).join('')}
+    </div>` : '<div class="adm-section"><div class="adm-section-title">Recent Feedback</div><div class="adm-loading" style="padding:20px 0">No feedback yet</div></div>';
+
+  document.getElementById('adm-body').innerHTML = errLogHtml + statsHtml + personaHtml + testersHtml + feedbackFiltered;
+}
+</script>
+<script src="/pdf.js"></script>
+<div id="lightbox" class="lightbox" onclick="lbBgClick(event)">
+  <button class="lb-close" onclick="closeLightbox()">✕</button>
+  <button class="lb-nav lb-prev" onclick="lbNav(-1);event.stopPropagation()">‹</button>
+  <img class="lb-img" id="lb-img" src="" alt="Full size photo"/>
+  <button class="lb-nav lb-next" onclick="lbNav(1);event.stopPropagation()">›</button>
+  <div class="lb-counter" id="lb-counter"></div>
+</div>
+<div id="sl-dive-modal" class="sl-dive-modal" style="display:none" onclick="if(event.target===this)closeDiveModal()">
+  <div class="sl-dive-modal-inner">
+    <div class="sl-dive-modal-car" id="sl-dive-modal-car"></div>
+    <div class="sl-dive-modal-sub">Choose your voice for this deep dive</div>
+    <div class="sl-dive-modal-ttl">Persona</div>
+    <div class="sl-persona-row" id="sl-dive-persona-row"></div>
+    <button class="sl-dive-cancel" onclick="closeDiveModal()">Cancel</button>
+  </div>
+</div>
+</body>
+</html>
